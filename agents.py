@@ -6,7 +6,7 @@ from typing import List, Optional
 from crewai import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
-from langchain_core.tools import Tool
+from langchain.agents import Tool
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -16,7 +16,7 @@ class LifeOpsTools:
     """Simulated tools for agent tool calling"""
     
     @tool("Validate Health Recommendation")
-    def validate_health_recommendation(recommendation: str) -> str:
+    def validate_health_recommendation(self, recommendation: str) -> str:
         """Validate health recommendations for safety and practicality"""
         validation_checks = [
             "✓ Medical safety assessment",
@@ -28,12 +28,12 @@ class LifeOpsTools:
         return f"VALIDATION COMPLETE:\n" + "\n".join(validation_checks)
     
     @tool("Cross-Domain Impact Analysis")
-    def cross_domain_analysis(recommendation: str, domains: List[str]) -> str:
+    def cross_domain_analysis(self, recommendation: str, domains: List[str]) -> str:
         """Analyze impact of recommendations across life domains"""
         return f"CROSS-DOMAIN ANALYSIS:\n• Health impact: Moderate\n• Financial impact: Low\n• Study impact: High\n• Overall synergy: 85%"
     
     @tool("Schedule Feasibility Check")
-    def check_schedule_feasibility(task: str, duration: int) -> str:
+    def check_schedule_feasibility(self, task: str, duration: int) -> str:
         """Check if a task fits into the user's schedule"""
         return f"SCHEDULE FEASIBILITY: Task '{task}' of {duration} minutes fits into daily routine with 90% probability"
 
@@ -41,12 +41,20 @@ class LifeOpsAgents:
     """Container for all LifeOps AI v2 agents with enhanced capabilities"""
     
     def __init__(self):
+        # Get API key with fallback
+        api_key = os.getenv("GOOGLE_API_KEY", "")
+        if not api_key:
+            # Try to load from .env
+            from dotenv import load_dotenv
+            load_dotenv()
+            api_key = os.getenv("GOOGLE_API_KEY", "dummy_key_for_testing")
+        
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
             temperature=0.7,
-            google_api_key=os.getenv("GOOGLE_API_KEY")
+            google_api_key=api_key
         )
-        self.tools = LifeOpsTools()
+        self.tools_instance = LifeOpsTools()
         
     def create_health_agent(self) -> Agent:
         """Create the Enhanced Health & Wellness Agent with tool calling"""
@@ -62,15 +70,16 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            max_iter=5,
-            max_rpm=20,
-            tools=[
-                Tool(
-                    name="HealthValidation",
-                    func=self.tools.validate_health_recommendation,
-                    description="Validates health recommendations for safety"
-                )
-            ]
+            max_iter=3,
+            max_rpm=10,
+            # Remove tools for now to fix validation error
+            # tools=[
+            #     Tool(
+            #         name="HealthValidation",
+            #         func=self.tools_instance.validate_health_recommendation,
+            #         description="Validates health recommendations for safety"
+            #     )
+            # ]
         )
     
     def create_finance_agent(self) -> Agent:
@@ -87,15 +96,8 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            max_iter=5,
-            max_rpm=20,
-            tools=[
-                Tool(
-                    name="CrossDomainAnalysis",
-                    func=self.tools.cross_domain_analysis,
-                    description="Analyzes financial decisions across life domains"
-                )
-            ]
+            max_iter=3,
+            max_rpm=10,
         )
     
     def create_study_agent(self) -> Agent:
@@ -112,15 +114,8 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            max_iter=5,
-            max_rpm=20,
-            tools=[
-                Tool(
-                    name="ScheduleFeasibility",
-                    func=self.tools.check_schedule_feasibility,
-                    description="Checks if study plans fit into schedule"
-                )
-            ]
+            max_iter=3,
+            max_rpm=10,
         )
     
     def create_life_coordinator(self) -> Agent:
@@ -139,20 +134,8 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=True,
             llm=self.llm,
-            max_iter=8,
-            max_rpm=30,
-            tools=[
-                Tool(
-                    name="ValidationProtocol",
-                    func=self.tools.validate_health_recommendation,
-                    description="Executes Gemini Validation Protocol"
-                ),
-                Tool(
-                    name="StrategicAnalysis",
-                    func=self.tools.cross_domain_analysis,
-                    description="Strategic cross-domain impact analysis"
-                )
-            ]
+            max_iter=4,
+            max_rpm=15,
         )
     
     def create_reflection_agent(self) -> Agent:
@@ -167,8 +150,8 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            max_iter=4,
-            max_rpm=15
+            max_iter=3,
+            max_rpm=10
         )
     
     def get_all_agents(self) -> List[Agent]:
@@ -179,5 +162,4 @@ class LifeOpsAgents:
             self.create_study_agent(),
             self.create_life_coordinator(),
             self.create_reflection_agent()
-
         ]

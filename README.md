@@ -1,4 +1,3 @@
-```markdown
 # 🚀 LifeOps AI v2.0
 
 <div align="center">
@@ -103,7 +102,6 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 
 ## 🏗️ System Architecture
 
-```
 ┌─────────────────────────────────────────────────────────────┐
 │ LifeOps AI v2.0 Architecture                                │
 ├─────────────────────────────────────────────────────────────┤
@@ -135,7 +133,7 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 │ │           • User Data Management                   │     │
 │ └────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────┘
-```
+
 
 ### 🔧 Technology Stack
 - **Frontend**: Streamlit (Python web framework)
@@ -146,7 +144,7 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 - **Styling**: Custom CSS with cyberpunk theme
 - **Utilities**: Pandas, UUID, Datetime, JSON
 
----
+
 
 ## 🛠️ Installation Guide
 

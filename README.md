@@ -101,31 +101,45 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 ---
 
 ## 🏗️ System Architecture
-
-```mermaid
-graph TD
-    User((User Interface)) -->|Input Data| Streamlit[Streamlit Frontend]
+flowchart TD
+    A[🌐 User Interface] --> B[🖥️ Streamlit Frontend]
+    B --> C[🤖 CrewAI Framework]
     
-    subgraph AI_Orchestration [CrewAI & Gemini Intelligence]
-        Streamlit -->|Trigger| CrewAI[Multi-Agent Orchestrator]
-        CrewAI --> Health[Health Command Agent]
-        CrewAI --> Finance[Finance Control Agent]
-        CrewAI --> Study[Study Orchestrator Agent]
-        
-        Health & Finance & Study -->|Coordination| Coordinator[Life Commander Agent]
-        Coordinator -->|Validation| Gemini[Google Gemini AI]
+    C --> D[🩺 Health Agent]
+    C --> E[💰 Finance Agent]
+    C --> F[📚 Study Agent]
+    C --> G[🎯 Coordinator Agent]
+    
+    subgraph AI_BACKEND [Gemini AI Backend]
+        H[🧠 Google Gemini LLM]
     end
     
-    subgraph Data_Layer [Backend & Storage]
-        Gemini -->|Optimization Plans| Processor[Data Processing Layer]
-        Processor -->|CRUD Operations| SQLite[(SQLite Database)]
-        SQLite -->|Status Updates| Streamlit
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    
+    subgraph DATA_PROCESSING [Data Processing Layer]
+        I[📝 Task Management]
+        J[📈 Progress Tracking]
+        K[💸 Bills Manager]
+        L[💊 Medicine Vault]
     end
+    
+    H --> DATA_PROCESSING
+    
+    DATA_PROCESSING --> M[💾 SQLite Database]
+    
+    M --> N[🔄 Persistent Storage]
+    N --> B
+    
+    style A fill:#4CAF50,color:white
+    style B fill:#2196F3,color:white
+    style C fill:#9C27B0,color:white
+    style H fill:#FF9800,color:white
+    style DATA_PROCESSING fill:#607D8B,color:white
+    style M fill:#795548,color:white
 
-    style User fill:#f9f,stroke:#333,stroke-width:2px
-    style Gemini fill:#4285F4,stroke:#fff,color:#fff
-    style SQLite fill:#003B57,stroke:#fff,color:#fff
-    style AI_Orchestration fill:#1a1a1a,stroke:#00ffcc,color:#fff
 
 
 

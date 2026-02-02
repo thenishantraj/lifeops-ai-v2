@@ -9,5 +9,4 @@ pandas
 langchain
 python-decouple
 pydantic
-sqlite3
 uuid

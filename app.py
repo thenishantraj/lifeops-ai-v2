@@ -390,7 +390,7 @@ class LifeOpsApp:
                 st.session_state.processing = False
                 st.success("Domain analysis complete!")
         
-       with col2:
+        with col2:
             if st.button("🔄 EXECUTE FULL ANALYSIS", use_container_width=True, type="primary"):
                 with st.spinner("EXECUTING GEMINI VALIDATION PROTOCOL..."):
                     try:
@@ -398,19 +398,19 @@ class LifeOpsApp:
                         if not os.getenv("GOOGLE_API_KEY"):
                             os.environ["GOOGLE_API_KEY"] = st.secrets.get("GOOGLE_API_KEY", "")
                 
-                            crew = LifeOpsCrew(st.session_state.user_inputs)
-                            results = crew.kickoff()
-                            st.session_state.analysis_results = results
-                            st.session_state.processing = False
-                            st.success("✅ FULL ANALYSIS COMPLETE!")
+                        crew = LifeOpsCrew(st.session_state.user_inputs)
+                        results = crew.kickoff()
+                        st.session_state.analysis_results = results
+                        st.session_state.processing = False
+                        st.success("✅ FULL ANALYSIS COMPLETE!")
                 
-                            # Extract tasks from results
-                            self.extract_tasks_from_results(results)
-                            st.rerun()
+                        # Extract tasks from results
+                        self.extract_tasks_from_results(results)
+                        st.rerun()
                 
-                        except Exception as e:
-                            st.error(f"❌ SYSTEM ERROR: {str(e)}")
-                            st.session_state.processing = False
+                    except Exception as e:
+                        st.error(f"❌ SYSTEM ERROR: {str(e)}")
+                        st.session_state.processing = False
         
         with col3:
             if st.button("📊 GENERATE WEEKLY PLAN", use_container_width=True):

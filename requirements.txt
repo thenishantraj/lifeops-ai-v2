@@ -3,10 +3,9 @@ streamlit
 python-dotenv
 langchain-google-genai
 google-generativeai
-streamlit-option-menu
 plotly
 pandas
 langchain
 python-decouple
 pydantic
-uuid
+streamlit-option-menu

@@ -19,28 +19,6 @@
 
 </div>
 
----
-
-## 📖 Table of Contents
-- [🌟 Introduction](#-introduction)
-- [✨ Key Features](#-key-features)
-- [🏗️ System Architecture](#️-system-architecture)
-- [🛠️ Installation Guide](#️-installation-guide)
-- [🚀 Quick Start](#-quick-start)
-- [🎯 How It Works](#-how-it-works)
-- [🤖 AI Agents Breakdown](#-ai-agents-breakdown)
-- [📊 Dashboard Features](#-dashboard-features)
-- [🔧 Configuration](#-configuration)
-- [📈 Use Cases](#-use-cases)
-- [🔄 API Integration](#-api-integration)
-- [📁 Project Structure](#-project-structure)
-- [🧪 Testing](#-testing)
-- [🤝 Contributing](#-contributing)
-- [📄 License](#-license)
-- [🙏 Acknowledgments](#-acknowledgments)
-- [📞 Contact](#-contact)
-
----
 
 ## 🌟 Introduction
 
@@ -101,37 +79,30 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 ---
 
 ## 🏗️ System Architecture
+```text
 ┌─────────────────────────────────────────────────────────────┐
-│ LifeOps AI v2.0 Architecture │
+│                  LifeOps AI v2.0 Architecture               │
 ├─────────────────────────────────────────────────────────────┤
-│ │
-│ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
-│ │ Streamlit│ │ CrewAI │ │ Gemini AI │ │
-│ │ Frontend│ │ Framework │ │ Backend │ │
-│ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ │
-│ │ │ │ │
-│ ┌─────▼───────────────▼───────────────▼──────┐ │
-│ │ Multi-Agent Orchestration │ │
-│ │ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ │ │
-│ │ │Health│ │Finance│ │Study │ │Coord.│ │ │
-│ │ │Agent │ │Agent │ │Agent │ │Agent │ │ │
-│ │ └──┬───┘ └───┬───┘ └───┬──┘ └──┬───┘ │ │
-│ │ │ │ │ │ │ │
-│ └─────┼─────────┼─────────┼───────┼──────────┘ │
-│ │ │ │ │ │
-│ ┌─────▼─────────▼─────────▼───────▼──────────┐ │
-│ │ Data Processing Layer │ │
-│ │ • Task Management • Progress Tracking │ │
-│ │ • Note System • Bill Management │ │
-│ │ • Medicine Vault • Calendar Sync │ │
-│ └─────────────────────────────────────────────┘ │
-│ │
-│ ┌────────────────────────────────────────────────────┐ │
-│ │ SQLite Database │ │
-│ │ • Persistent Storage │ │
-│ │ • User Data Management │ │
-│ └──────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────┘
+│   ┌────────────┐       ┌────────────┐       ┌────────────┐  │
+│   │ Streamlit  │       │   CrewAI   │       │  Gemini AI │  │
+│   │ Frontend   │◄─────►│ Framework  │◄─────►│  Backend   │  │
+│   └─────┬──────┘       └─────┬──────┘       └─────┬──────┘  │
+│         │                    │                    │         │
+│   ┌─────▼────────────────────▼────────────────────▼──────┐  │
+│   │             Multi-Agent Orchestration                │  │
+│   │  ┌──────┐    ┌───────┐    ┌───────┐    ┌────────┐    │  │
+│   │  │Health│    │Finance│    │ Study │    │ Coord. │    │  │
+│   │  │Agent │    │ Agent │    │ Agent │    │ Agent  │    │  │
+│   │  └──────┘    └───────┘    └───────┘    └────────┘    │  │
+│   └─────┬────────────┬────────────┬────────────┬─────────┘  │
+│         ▼            ▼            ▼            ▼            │
+│   ┌──────────────────────────────────────────────────────┐  │
+│   │                Data Processing Layer                 │  │
+│   └──────────────────────────┬───────────────────────────┘  │
+│                              ▼                              │
+│   ┌──────────────────────────────────────────────────────┐  │
+│   │                  SQLite Database                     │  │
+│   └──────────────────────────────────────────────────────┘  │
 
 
 ### 🔧 Technology Stack
@@ -147,48 +118,17 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 
 ## 🛠️ Installation Guide
 
+Follow these steps to set up the project on your local machine.
+
 ### Prerequisites
-- Python 3.8 or higher
-- Google Gemini API key (free tier available)
-- Git (for version control)
+* **Python 3.8** or higher
+* **Google Gemini API key** (free tier available)
+* **Git** (for version control)
+
+---
 
 ### Step 1: Clone the Repository
+Open your terminal and run:
 ```bash
-git clone https://github.com/yourusername/lifeops-ai.git
+git clone [https://github.com/yourusername/lifeops-ai.git](https://github.com/yourusername/lifeops-ai.git)
 cd lifeops-ai
-Step 2: Create Virtual Environment (Recommended)
-bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
-Step 3: Install Dependencies
-bash
-pip install -r requirements.txt
-Step 4: Configure Environment Variables
-Create a .env file in the root directory:
-
-env
-# Required: Google Gemini API Key
-GOOGLE_API_KEY=your_gemini_api_key_here
-
-# Optional: Custom Database Path
-DATABASE_PATH=lifeops_v2.db
-
-# Optional: App Configuration
-APP_TITLE="LifeOps AI v2.0"
-DEBUG_MODE=False
-Step 5: Get Your Gemini API Key
-Visit Google AI Studio
-
-Create a new API key (free tier available)
-
-Copy the key to your .env file
-
-Step 6: Run the Application
-bash
-streamlit run app.py
-The app will open in your default browser at http://localhost:8501

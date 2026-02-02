@@ -101,6 +101,7 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 ---
 
 ## 🏗️ System Architecture
+```mermaid
 flowchart TD
     A[🌐 User Interface] --> B[🖥️ Streamlit Frontend]
     B --> C[🤖 CrewAI Framework]
@@ -139,9 +140,7 @@ flowchart TD
     style H fill:#FF9800,color:white
     style DATA_PROCESSING fill:#607D8B,color:white
     style M fill:#795548,color:white
-
-
-
+```
 
 ### 🔧 Technology Stack
 - **Frontend**: Streamlit (Python web framework)

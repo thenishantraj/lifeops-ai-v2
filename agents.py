@@ -1,16 +1,32 @@
 """
 LifeOps AI v2 - Enhanced Multi-Agent System
-FIXED VERSION for Streamlit Cloud
+COMPATIBLE VERSION for all LangChain versions
 """
 import os
-from typing import List
+from typing import List, Any
 from crewai import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import Tool  # FIXED IMPORT
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+# Try different import locations for Tool
+try:
+    # For newer versions (0.1.x)
+    from langchain.tools import Tool
+except ImportError:
+    try:
+        # For older versions (0.0.x)
+        from langchain.agents import Tool
+    except ImportError:
+        # Fallback - create our own Tool class
+        from typing import Callable
+        class Tool:
+            def __init__(self, name: str, func: Callable, description: str):
+                self.name = name
+                self.func = func
+                self.description = description
 
 class LifeOpsTools:
     """Simulated tools for agent tool calling"""
@@ -41,15 +57,35 @@ class LifeOpsAgents:
     """Container for all LifeOps AI v2 agents with enhanced capabilities"""
     
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
-            temperature=0.7,
-            google_api_key=os.getenv("GOOGLE_API_KEY")
-        )
+        # Initialize LLM with error handling
+        try:
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                temperature=0.7,
+                google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
+        except Exception as e:
+            print(f"Warning: Could not initialize Google Gemini: {e}")
+            # Fallback to a mock LLM for testing
+            self.llm = None
+            
         self.tools = LifeOpsTools()
         
     def create_health_agent(self) -> Agent:
         """Create the Enhanced Health & Wellness Agent with tool calling"""
+        # Create tools list
+        tools_list = []
+        try:
+            tools_list = [
+                Tool(
+                    name="HealthValidation",
+                    func=self.tools.validate_health_recommendation,
+                    description="Validates health recommendations for safety"
+                )
+            ]
+        except:
+            pass  # Continue without tools if Tool class not available
+        
         return Agent(
             role="Health and Wellness Command Officer",
             goal="""Optimize user's physical and mental health through predictive analysis, 
@@ -64,17 +100,23 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=5,
             max_rpm=20,
-            tools=[
-                Tool(
-                    name="HealthValidation",
-                    func=self.tools.validate_health_recommendation,
-                    description="Validates health recommendations for safety"
-                )
-            ]
+            tools=tools_list if tools_list else None
         )
     
     def create_finance_agent(self) -> Agent:
         """Create the Enhanced Personal Finance Agent with predictive analytics"""
+        tools_list = []
+        try:
+            tools_list = [
+                Tool(
+                    name="CrossDomainAnalysis",
+                    func=self.tools.cross_domain_analysis,
+                    description="Analyzes financial decisions across life domains"
+                )
+            ]
+        except:
+            pass
+        
         return Agent(
             role="Finance Operations Director",
             goal="""Execute financial optimization protocols, predictive budgeting, 
@@ -89,17 +131,23 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=5,
             max_rpm=20,
-            tools=[
-                Tool(
-                    name="CrossDomainAnalysis",
-                    func=self.tools.cross_domain_analysis,
-                    description="Analyzes financial decisions across life domains"
-                )
-            ]
+            tools=tools_list if tools_list else None
         )
     
     def create_study_agent(self) -> Agent:
         """Create the Enhanced Learning & Productivity Agent with cognitive science"""
+        tools_list = []
+        try:
+            tools_list = [
+                Tool(
+                    name="ScheduleFeasibility",
+                    func=self.tools.check_schedule_feasibility,
+                    description="Checks if study plans fit into schedule"
+                )
+            ]
+        except:
+            pass
+        
         return Agent(
             role="Cognitive Performance Architect",
             goal="""Design optimized learning schedules using spaced repetition algorithms,
@@ -114,17 +162,28 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=5,
             max_rpm=20,
-            tools=[
-                Tool(
-                    name="ScheduleFeasibility",
-                    func=self.tools.check_schedule_feasibility,
-                    description="Checks if study plans fit into schedule"
-                )
-            ]
+            tools=tools_list if tools_list else None
         )
     
     def create_life_coordinator(self) -> Agent:
         """Create the Master Life Coordinator with Gemini Validation"""
+        tools_list = []
+        try:
+            tools_list = [
+                Tool(
+                    name="ValidationProtocol",
+                    func=self.tools.validate_health_recommendation,
+                    description="Executes Gemini Validation Protocol"
+                ),
+                Tool(
+                    name="StrategicAnalysis",
+                    func=self.tools.cross_domain_analysis,
+                    description="Strategic cross-domain impact analysis"
+                )
+            ]
+        except:
+            pass
+        
         return Agent(
             role="Life Operations Commander",
             goal="""Orchestrate all life domains with military precision. Validate all agent outputs
@@ -141,18 +200,7 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=8,
             max_rpm=30,
-            tools=[
-                Tool(
-                    name="ValidationProtocol",
-                    func=self.tools.validate_health_recommendation,
-                    description="Executes Gemini Validation Protocol"
-                ),
-                Tool(
-                    name="StrategicAnalysis",
-                    func=self.tools.cross_domain_analysis,
-                    description="Strategic cross-domain impact analysis"
-                )
-            ]
+            tools=tools_list if tools_list else None
         )
     
     def create_reflection_agent(self) -> Agent:

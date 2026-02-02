@@ -6,7 +6,7 @@ from typing import List, Optional
 from crewai import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
-from langchain.agents import Tool
+from langchain_core.tools import Tool
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -179,4 +179,5 @@ class LifeOpsAgents:
             self.create_study_agent(),
             self.create_life_coordinator(),
             self.create_reflection_agent()
+
         ]

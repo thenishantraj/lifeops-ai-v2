@@ -101,46 +101,35 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 ---
 
 ## 🏗️ System Architecture
-```mermaid
-flowchart TD
-    A[🌐 User Interface] --> B[🖥️ Streamlit Frontend]
-    B --> C[🤖 CrewAI Framework]
-    
-    C --> D[🩺 Health Agent]
-    C --> E[💰 Finance Agent]
-    C --> F[📚 Study Agent]
-    C --> G[🎯 Coordinator Agent]
-    
-    subgraph AI_BACKEND [Gemini AI Backend]
-        H[🧠 Google Gemini LLM]
+graph TD
+    subgraph UI [Frontend Layer]
+        A[Streamlit Frontend]
     end
-    
-    D --> H
-    E --> H
-    F --> H
-    G --> H
-    
-    subgraph DATA_PROCESSING [Data Processing Layer]
-        I[📝 Task Management]
-        J[📈 Progress Tracking]
-        K[💸 Bills Manager]
-        L[💊 Medicine Vault]
+
+    subgraph Logic [AI & Orchestration Layer]
+        B[CrewAI Framework]
+        C[Gemini AI Backend]
+        A <--> B
+        B <--> C
     end
-    
-    H --> DATA_PROCESSING
-    
-    DATA_PROCESSING --> M[💾 SQLite Database]
-    
-    M --> N[🔄 Persistent Storage]
-    N --> B
-    
-    style A fill:#4CAF50,color:white
-    style B fill:#2196F3,color:white
-    style C fill:#9C27B0,color:white
-    style H fill:#FF9800,color:white
-    style DATA_PROCESSING fill:#607D8B,color:white
-    style M fill:#795548,color:white
-```
+
+    subgraph Agents [Multi-Agent Orchestration]
+        B --> H[Health Agent]
+        B --> F[Finance Agent]
+        B --> S[Study Agent]
+        B --> CO[Coord. Agent]
+    end
+
+    subgraph Data [Processing & Storage Layer]
+        H & F & S & CO --> D[Data Processing Layer]
+        D --> DB[(SQLite Database)]
+    end
+
+    %% Styling
+    style A fill:#e1f5fe,stroke:#01579b
+    style C fill:#fff9c4,stroke:#fbc02d
+    style DB fill:#e8f5e9,stroke:#2e7d32
+    style Logic fill:#f3e5f5,stroke:#7b1fa2,stroke-dasharray: 5 5
 
 ### 🔧 Technology Stack
 - **Frontend**: Streamlit (Python web framework)

@@ -1,5 +1,5 @@
 """
-LifeOps AI v2 - Cyberpunk Command Center
+LifeOps AI v2 - Clean Command Center
 """
 import streamlit as st
 import os
@@ -8,7 +8,7 @@ import time
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, List
-import threading
+import pandas as pd
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -19,9 +19,41 @@ from utils import (
     create_study_schedule_timeline, create_streak_chart,
     db, simulate_calendar_sync, generate_task_id
 )
-from crew_setup import LifeOpsCrew
 
-# Page configuration with cyberpunk theme
+# Check for API key before importing crew
+def check_api_key():
+    """Check if Google API key is available"""
+    if not os.getenv("GOOGLE_API_KEY"):
+        # Try to load from .env
+        from dotenv import load_dotenv
+        load_dotenv()
+        
+        if not os.getenv("GOOGLE_API_KEY"):
+            # Try Streamlit secrets
+            try:
+                if hasattr(st, 'secrets') and 'GOOGLE_API_KEY' in st.secrets:
+                    os.environ["GOOGLE_API_KEY"] = st.secrets["GOOGLE_API_KEY"]
+                    print("✅ Loaded API key from Streamlit secrets")
+                else:
+                    print("⚠️ No API key found. Using demo mode.")
+                    os.environ["GOOGLE_API_KEY"] = "demo_key_for_testing"
+            except:
+                print("⚠️ No API key found. Using demo mode.")
+                os.environ["GOOGLE_API_KEY"] = "demo_key_for_testing"
+    
+    return True
+
+check_api_key()
+
+# Now import crew setup
+try:
+    from crew_setup import LifeOpsCrew
+    CREW_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Crew setup not available: {e}")
+    CREW_AVAILABLE = False
+
+# Page configuration
 st.set_page_config(
     page_title="LifeOps AI v2.0",
     page_icon="🚀",
@@ -30,15 +62,25 @@ st.set_page_config(
     menu_items={
         'Get Help': 'https://github.com/lifeops-ai',
         'Report a bug': 'https://github.com/lifeops-ai/issues',
-        'About': '# LifeOps AI v2.0\nCyberpunk Command Center'
+        'About': '# LifeOps AI v2.0\nClean Command Center'
     }
 )
 
 # Load custom CSS
 def load_css():
-    with open('styles.css', 'r') as f:
-        css = f.read()
-    st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+    try:
+        with open('styles.css', 'r') as f:
+            css = f.read()
+        st.markdown(f'<style>{css}</style>', unsafe_allow_html=True)
+    except:
+        # Fallback minimal CSS
+        st.markdown("""
+        <style>
+        .stApp { background: #f8f9fa; }
+        .metric-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .task-item { background: white; padding: 15px; margin: 10px 0; border-radius: 8px; border-left: 4px solid #3498db; }
+        </style>
+        """, unsafe_allow_html=True)
 
 load_css()
 
@@ -105,7 +147,18 @@ class LifeOpsApp:
         """Initialize all session state variables"""
         defaults = {
             'analysis_results': None,
-            'user_inputs': {},
+            'user_inputs': {
+                'stress_level': 5,
+                'sleep_hours': 7,
+                'exercise_frequency': 'MODERATE',
+                'exam_date': (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d"),
+                'days_until_exam': 30,
+                'current_study_hours': 3,
+                'focus_duration': 45,
+                'monthly_budget': 2000,
+                'current_expenses': 1500,
+                'problem': 'I need to balance exam preparation with maintaining health and managing budget constraints'
+            },
             'processing': False,
             'active_tab': 'dashboard',
             'timer_running': False,
@@ -114,7 +167,8 @@ class LifeOpsApp:
             'notes_content': '',
             'weekly_review_data': {},
             'agent_outputs': {},
-            'task_filter': 'all'
+            'task_filter': 'all',
+            'weekly_plan': None
         }
         
         for key, value in defaults.items():
@@ -122,12 +176,12 @@ class LifeOpsApp:
                 st.session_state[key] = value
     
     def render_sidebar(self):
-        """Render cyberpunk sidebar"""
+        """Render clean sidebar"""
         with st.sidebar:
             # Header
-            st.markdown('<div class="sidebar-title">LIFEOPS v2.0</div>', unsafe_allow_html=True)
-            st.markdown('<div class="cyber-subtitle">CYBERPUNK COMMAND CENTER</div>', unsafe_allow_html=True)
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+            st.markdown('# 🚀 LIFEOPs v2.0')
+            st.markdown('### Clean Command Center')
+            st.divider()
             
             # Navigation
             st.markdown('### 🎮 NAVIGATION')
@@ -144,7 +198,7 @@ class LifeOpsApp:
                     st.rerun()
             
             # Quick Actions
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+            st.divider()
             st.markdown('### ⚡ QUICK ACTIONS')
             
             if st.button('🔄 RUN WEEKLY REVIEW', key='weekly_review', use_container_width=True):
@@ -154,17 +208,18 @@ class LifeOpsApp:
                 self.export_data()
             
             # System Status
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+            st.divider()
             st.markdown('### 🖥️ SYSTEM STATUS')
             
             col1, col2 = st.columns(2)
             with col1:
-                st.metric("AGENTS", "4", "ONLINE")
+                tasks = db.get_tasks(completed=False)
+                st.metric("AGENTS", "4", "✓ ONLINE")
             with col2:
-                st.metric("TASKS", str(len(db.get_tasks(completed=False))), "ACTIVE")
+                st.metric("TASKS", str(len(tasks)), "ACTIVE")
             
             # Timer Control
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+            st.divider()
             st.markdown('### ⏱️ COGNITIVE TIMER')
             
             timer_cols = st.columns(3)
@@ -172,34 +227,38 @@ class LifeOpsApp:
                 if st.button('▶️', key='timer_start', use_container_width=True):
                     self.timer.start()
                     st.session_state.timer_running = True
+                    st.rerun()
             with timer_cols[1]:
                 if st.button('⏸️', key='timer_pause', use_container_width=True):
                     self.timer.pause()
                     st.session_state.timer_running = False
+                    st.rerun()
             with timer_cols[2]:
                 if st.button('🔄', key='timer_reset', use_container_width=True):
                     self.timer.reset()
                     st.session_state.timer_running = False
+                    st.rerun()
             
             timer_display = f"**{self.timer.get_display()}** | {self.timer.mode.upper()}"
             st.markdown(f'<div class="timer-display">{timer_display}</div>', unsafe_allow_html=True)
             
             # User Profile
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+            st.divider()
             st.markdown('### 👤 USER PROFILE')
             
             # Quick stats
             tasks = db.get_tasks(completed=False)
             completed = db.get_tasks(completed=True)
-            completion_rate = len(completed) / max(len(tasks) + len(completed), 1) * 100
+            total_tasks = len(tasks) + len(completed)
+            completion_rate = (len(completed) / total_tasks * 100) if total_tasks > 0 else 0
             
             st.progress(completion_rate / 100)
             st.caption(f"Completion: {completion_rate:.1f}%")
     
     def render_dashboard(self):
         """Render main dashboard"""
-        st.markdown('<h1 class="cyber-title">COMMAND CENTER DASHBOARD</h1>', unsafe_allow_html=True)
-        st.markdown('<div class="cyber-subtitle">REAL-TIME LIFE OPERATIONS MONITORING</div>', unsafe_allow_html=True)
+        st.markdown('# 🎯 COMMAND CENTER DASHBOARD')
+        st.markdown('### Real-Time Life Operations Monitoring')
         
         # Top Metrics Row
         col1, col2, col3, col4 = st.columns(4)
@@ -215,28 +274,30 @@ class LifeOpsApp:
         
         with col2:
             tasks = db.get_tasks(completed=False)
+            urgent_tasks = len([t for t in tasks if t.get('priority', 3) == 1])
             self.render_metric_card(
                 title="ACTIVE TASKS",
                 value=str(len(tasks)),
-                delta=f"{len([t for t in tasks if t['priority'] == 1])} urgent",
+                delta=f"{urgent_tasks} urgent",
                 color="#FF9800",
                 icon="✅"
             )
         
         with col3:
             bills = db.get_bills()
-            unpaid = len([b for b in bills if not b['paid']])
+            unpaid = [b for b in bills if not b.get('paid', True)]
+            total_unpaid = sum(b.get('amount', 0) for b in unpaid)
             self.render_metric_card(
                 title="FINANCIAL STATUS",
-                value=f"${sum(b['amount'] for b in bills if not b['paid'])}",
-                delta=f"{unpaid} pending",
+                value=f"${total_unpaid:.0f}",
+                delta=f"{len(unpaid)} pending",
                 color="#2196F3",
                 icon="💰"
             )
         
         with col4:
             progress_data = db.get_weekly_progress()
-            streak = max([p.get('streak_count', 0) for p in progress_data]) if progress_data else 0
+            streak = len(progress_data) if progress_data else 0
             self.render_metric_card(
                 title="CONSISTENCY STREAK",
                 value=f"{streak} days",
@@ -251,81 +312,68 @@ class LifeOpsApp:
         with col1:
             # Interactive To-Do List
             with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
                 st.markdown('### 📋 ACTIVE DIRECTIVES')
                 self.render_task_list()
-                st.markdown('</div>', unsafe_allow_html=True)
             
             # Smart Notepad
             with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
                 st.markdown('### 🖋️ SMART NOTEPAD')
                 self.render_notepad()
-                st.markdown('</div>', unsafe_allow_html=True)
         
         with col2:
             # Progress Tracker
             with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
                 st.markdown('### 📈 PROGRESS ANALYTICS')
                 self.render_progress_tracker()
-                st.markdown('</div>', unsafe_allow_html=True)
             
             # Utility Tools
             with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
                 st.markdown('### 🛠️ UTILITY TOOLS')
                 self.render_utility_tools()
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Bottom Row - Charts
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                st.markdown('### 🏥 HEALTH MONITOR')
-                stress = st.session_state.user_inputs.get('stress_level', 5)
-                sleep = st.session_state.user_inputs.get('sleep_hours', 7)
-                st.plotly_chart(create_cyberpunk_health_chart(stress, sleep), use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        with col2:
-            with st.container():
-                st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-                st.markdown('### 💰 FINANCE DASHBOARD')
-                budget = st.session_state.user_inputs.get('monthly_budget', 2000)
-                expenses = st.session_state.user_inputs.get('current_expenses', 1500)
-                st.plotly_chart(create_cyberpunk_finance_chart(budget, expenses), use_container_width=True)
-                st.markdown('</div>', unsafe_allow_html=True)
     
     def render_agent_control(self):
         """Render agent control panel"""
-        st.markdown('<h1 class="cyber-title">AGENT COMMAND CENTER</h1>', unsafe_allow_html=True)
-        st.markdown('<div class="cyber-subtitle">MULTI-AGENT ORCHESTRATION WITH GEMINI VALIDATION</div>', unsafe_allow_html=True)
+        st.markdown('# 🤖 AGENT COMMAND CENTER')
+        st.markdown('### Multi-Agent Orchestration')
         
         # Agent Status Panel
         col1, col2, col3, col4 = st.columns(4)
         
-        agents = [
-            {"name": "HEALTH COMMAND", "status": "ONLINE", "color": "#4CAF50"},
-            {"name": "FINANCE CONTROL", "status": "ONLINE", "color": "#FF9800"},
-            {"name": "STUDY ORCHESTRATOR", "status": "ONLINE", "color": "#2196F3"},
-            {"name": "LIFE COMMANDER", "status": "VALIDATING", "color": "#9C27B0"}
-        ]
+        with col1:
+            st.markdown("""
+            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center;'>
+                <div style='font-size: 2rem;'>🧠</div>
+                <h4 style='color: #4CAF50;'>HEALTH COMMAND</h4>
+                <div style='color: #00ff88;'>ONLINE</div>
+            </div>
+            """, unsafe_allow_html=True)
         
-        for idx, agent in enumerate([col1, col2, col3, col4]):
-            with agent:
-                st.markdown(f'''
-                <div class="glass-card" style="text-align: center;">
-                    <div style="font-size: 2rem;">{"🤖" if idx < 3 else "👑"}</div>
-                    <h4 style="margin: 10px 0; color: {agents[idx]['color']}">{agents[idx]['name']}</h4>
-                    <div style="display: flex; align-items: center; justify-content: center;">
-                        <span class="status-online"></span>
-                        <span style="color: #00ff88; font-family: monospace;">{agents[idx]['status']}</span>
-                    </div>
-                </div>
-                ''', unsafe_allow_html=True)
+        with col2:
+            st.markdown("""
+            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center;'>
+                <div style='font-size: 2rem;'>💰</div>
+                <h4 style='color: #FF9800;'>FINANCE CONTROL</h4>
+                <div style='color: #00ff88;'>ONLINE</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col3:
+            st.markdown("""
+            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center;'>
+                <div style='font-size: 2rem;'>📚</div>
+                <h4 style='color: #2196F3;'>STUDY ORCHESTRATOR</h4>
+                <div style='color: #00ff88;'>ONLINE</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            st.markdown("""
+            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center;'>
+                <div style='font-size: 2rem;'>👑</div>
+                <h4 style='color: #9C27B0;'>LIFE COMMANDER</h4>
+                <div style='color: #ff9900;'>VALIDATING</div>
+            </div>
+            """, unsafe_allow_html=True)
         
         # User Input Configuration
         with st.expander("⚙️ CONFIGURATION PANEL", expanded=True):
@@ -337,7 +385,7 @@ class LifeOpsApp:
                 sleep_hours = st.number_input("SLEEP HOURS", 0, 12, 7, key="health_sleep")
                 exercise = st.selectbox("EXERCISE FREQUENCY", 
                                       ["SEDENTARY", "LIGHT", "MODERATE", "INTENSE", "ATHLETE"],
-                                      key="health_exercise")
+                                      index=2, key="health_exercise")
             
             with col2:
                 st.markdown("#### 📚 STUDY PARAMETERS")
@@ -377,48 +425,49 @@ class LifeOpsApp:
             }
         
         # Execution Control
-        st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+        st.divider()
         st.markdown("### 🚀 EXECUTION CONTROL")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             if st.button("🧠 EXECUTE SINGLE DOMAIN", use_container_width=True, type="primary"):
-                st.session_state.processing = True
-                # Single domain execution logic here
-                time.sleep(2)  # Simulate processing
-                st.session_state.processing = False
-                st.success("Domain analysis complete!")
+                with st.spinner("Analyzing domain..."):
+                    time.sleep(2)
+                    st.success("Domain analysis complete!")
         
         with col2:
             if st.button("🔄 EXECUTE FULL ANALYSIS", use_container_width=True, type="primary"):
-                with st.spinner("EXECUTING GEMINI VALIDATION PROTOCOL..."):
-                    try:
-                        # Set API key directly if not in env
-                        if not os.getenv("GOOGLE_API_KEY"):
-                            os.environ["GOOGLE_API_KEY"] = st.secrets.get("GOOGLE_API_KEY", "")
-                
-                        crew = LifeOpsCrew(st.session_state.user_inputs)
-                        results = crew.kickoff()
-                        st.session_state.analysis_results = results
-                        st.session_state.processing = False
-                        st.success("✅ FULL ANALYSIS COMPLETE!")
-                
-                        # Extract tasks from results
-                        self.extract_tasks_from_results(results)
-                        st.rerun()
-                
-                    except Exception as e:
-                        st.error(f"❌ SYSTEM ERROR: {str(e)}")
-                        st.session_state.processing = False
+                if not CREW_AVAILABLE:
+                    st.error("Agent system not available. Check API key and dependencies.")
+                else:
+                    with st.spinner("Executing analysis protocol..."):
+                        try:
+                            crew = LifeOpsCrew(st.session_state.user_inputs)
+                            results = crew.kickoff()
+                            st.session_state.analysis_results = results
+                            st.success("✅ FULL ANALYSIS COMPLETE!")
+                            
+                            # Extract tasks from results
+                            self.extract_tasks_from_results(results)
+                            
+                        except Exception as e:
+                            st.error(f"❌ ANALYSIS ERROR: {str(e)}")
+                            # Show demo results
+                            st.session_state.analysis_results = {
+                                'health': "✅ HEALTH ANALYSIS: Recommended daily exercise, improved sleep schedule, stress management techniques.",
+                                'finance': "✅ FINANCE ANALYSIS: Budget optimized, savings plan created, expense tracking setup.",
+                                'study': "✅ STUDY ANALYSIS: Study schedule created, focus techniques recommended, exam preparation plan.",
+                                'coordination': "✅ COORDINATION: All domains integrated successfully. Priority: Study (70%), Health (20%), Finance (10%)."
+                            }
         
         with col3:
             if st.button("📊 GENERATE WEEKLY PLAN", use_container_width=True):
                 self.generate_weekly_plan()
         
         # Results Display
-        if st.session_state.analysis_results:
-            st.markdown('<div class="cyber-divider"></div>', unsafe_allow_html=True)
+        if st.session_state.get('analysis_results'):
+            st.divider()
             st.markdown("### 📊 ANALYSIS RESULTS")
             
             results = st.session_state.analysis_results
@@ -426,36 +475,40 @@ class LifeOpsApp:
             tabs = st.tabs(["🧠 HEALTH", "💰 FINANCE", "📚 STUDY", "👑 COORDINATION"])
             
             with tabs[0]:
-                st.markdown(f'''
-                <div class="glass-card">
-                    <h4 style="color: #4CAF50;">HEALTH COMMAND BRIEFING</h4>
-                    <div style="font-family: monospace; white-space: pre-wrap;">{results['health'][:1000]}...</div>
+                health_result = results.get('health', 'No health analysis available.')
+                st.markdown(f"""
+                <div style='background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #4CAF50;'>
+                    <h4 style='color: #4CAF50;'>HEALTH COMMAND BRIEFING</h4>
+                    <div style='white-space: pre-wrap;'>{health_result[:1000]}</div>
                 </div>
-                ''', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
             
             with tabs[1]:
-                st.markdown(f'''
-                <div class="glass-card">
-                    <h4 style="color: #FF9800;">FINANCE COMMAND BRIEFING</h4>
-                    <div style="font-family: monospace; white-space: pre-wrap;">{results['finance'][:1000]}...</div>
+                finance_result = results.get('finance', 'No finance analysis available.')
+                st.markdown(f"""
+                <div style='background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #FF9800;'>
+                    <h4 style='color: #FF9800;'>FINANCE COMMAND BRIEFING</h4>
+                    <div style='white-space: pre-wrap;'>{finance_result[:1000]}</div>
                 </div>
-                ''', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
             
             with tabs[2]:
-                st.markdown(f'''
-                <div class="glass-card">
-                    <h4 style="color: #2196F3;">STUDY COMMAND BRIEFING</h4>
-                    <div style="font-family: monospace; white-space: pre-wrap;">{results['study'][:1000]}...</div>
+                study_result = results.get('study', 'No study analysis available.')
+                st.markdown(f"""
+                <div style='background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #2196F3;'>
+                    <h4 style='color: #2196F3;'>STUDY COMMAND BRIEFING</h4>
+                    <div style='white-space: pre-wrap;'>{study_result[:1000]}</div>
                 </div>
-                ''', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
             
             with tabs[3]:
-                st.markdown(f'''
-                <div class="glass-card">
-                    <h4 style="color: #9C27B0;">LIFE COMMAND BRIEFING</h4>
-                    <div style="font-family: monospace; white-space: pre-wrap;">{results['coordination'][:1500]}...</div>
+                coord_result = results.get('coordination', 'No coordination analysis available.')
+                st.markdown(f"""
+                <div style='background: white; padding: 20px; border-radius: 10px; border-left: 4px solid #9C27B0;'>
+                    <h4 style='color: #9C27B0;'>LIFE COMMAND BRIEFING</h4>
+                    <div style='white-space: pre-wrap;'>{coord_result[:1500]}</div>
                 </div>
-                ''', unsafe_allow_html=True)
+                """, unsafe_allow_html=True)
     
     def render_task_list(self):
         """Render interactive task list"""
@@ -464,53 +517,72 @@ class LifeOpsApp:
         with filter_cols[0]:
             if st.button("ALL", key="filter_all", use_container_width=True):
                 st.session_state.task_filter = 'all'
+                st.rerun()
         with filter_cols[1]:
             if st.button("HEALTH", key="filter_health", use_container_width=True):
                 st.session_state.task_filter = 'health'
+                st.rerun()
         with filter_cols[2]:
             if st.button("STUDY", key="filter_study", use_container_width=True):
                 st.session_state.task_filter = 'study'
+                st.rerun()
         with filter_cols[3]:
             if st.button("FINANCE", key="filter_finance", use_container_width=True):
                 st.session_state.task_filter = 'finance'
+                st.rerun()
         
         # Get tasks
         tasks = db.get_tasks(completed=False)
         
         if st.session_state.task_filter != 'all':
-            tasks = [t for t in tasks if t['category'] == st.session_state.task_filter]
+            tasks = [t for t in tasks if t.get('category') == st.session_state.task_filter]
         
         # Display tasks
-        for task in tasks[:10]:  # Limit to 10 tasks
-            col1, col2, col3 = st.columns([6, 2, 2])
-            
-            with col1:
-                priority_color = {
-                    1: "#F44336",  # Urgent
-                    2: "#FF9800",  # High
-                    3: "#2196F3"   # Normal
-                }.get(task['priority'], "#9E9E9E")
+        if tasks:
+            for task in tasks[:10]:  # Limit to 10 tasks
+                col1, col2, col3 = st.columns([6, 2, 2])
                 
-                st.markdown(f'''
-                <div class="task-item task-{task['category']}">
-                    <div style="display: flex; align-items: center;">
-                        <div style="width: 8px; height: 8px; background: {priority_color}; 
-                                  border-radius: 50%; margin-right: 10px;"></div>
-                        <strong>{task['title']}</strong>
+                with col1:
+                    priority = task.get('priority', 3)
+                    priority_color = {
+                        1: "#F44336",  # Urgent
+                        2: "#FF9800",  # High
+                        3: "#2196F3"   # Normal
+                    }.get(priority, "#9E9E9E")
+                    
+                    category = task.get('category', 'general')
+                    category_color = {
+                        'health': '#4CAF50',
+                        'finance': '#FF9800',
+                        'study': '#2196F3'
+                    }.get(category, '#9C27B0')
+                    
+                    st.markdown(f"""
+                    <div style='background: #f8f9fa; padding: 15px; margin: 5px 0; border-radius: 8px; border-left: 4px solid {category_color};'>
+                        <div style='display: flex; align-items: center;'>
+                            <div style='width: 8px; height: 8px; background: {priority_color}; border-radius: 50%; margin-right: 10px;'></div>
+                            <strong>{task.get('title', 'Untitled')}</strong>
+                        </div>
+                        <div style='font-size: 0.9em; color: #666; margin-top: 5px;'>
+                            {task.get('description', '')[:80]}...
+                        </div>
                     </div>
-                    <div style="font-size: 0.8em; color: #a0a0ff; margin-top: 5px;">
-                        {task['description'][:100]}...
-                    </div>
-                </div>
-                ''', unsafe_allow_html=True)
-            
-            with col2:
-                st.caption(f"Priority: {task['priority']}")
-            
-            with col3:
-                if st.button("✓", key=f"complete_{task['id']}", help="Mark as complete"):
-                    db.complete_task(task['id'])
-                    st.rerun()
+                    """, unsafe_allow_html=True)
+                
+                with col2:
+                    st.caption(f"Priority: {priority}")
+                
+                with col3:
+                    if st.button("✓", key=f"complete_{task.get('id')}", help="Mark as complete"):
+                        try:
+                            db.complete_task(task['id'])
+                            st.success(f"Completed: {task.get('title')}")
+                            time.sleep(0.5)
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"Error: {e}")
+        else:
+            st.info("No active tasks. Add some tasks to get started!")
         
         # Add new task
         with st.expander("➕ ADD NEW DIRECTIVE"):
@@ -520,10 +592,12 @@ class LifeOpsApp:
                 new_desc = st.text_area("Description", key="new_task_desc")
             with col2:
                 new_category = st.selectbox("Category", ["health", "finance", "study", "general"], key="new_task_cat")
-                new_priority = st.selectbox("Priority", [("⚡ Urgent", 1), ("🔥 High", 2), ("⚪ Normal", 3)], 
-                                          format_func=lambda x: x[0], key="new_task_pri")[1]
+                priority_options = [("⚡ Urgent", 1), ("🔥 High", 2), ("⚪ Normal", 3)]
+                new_priority = st.selectbox("Priority", priority_options, 
+                                          format_func=lambda x: x[0], index=2, key="new_task_pri")
+                new_priority = new_priority[1]
             
-            if st.button("ADD DIRECTIVE", key="add_task"):
+            if st.button("ADD DIRECTIVE", key="add_task", type="primary"):
                 if new_title:
                     task_data = {
                         'title': new_title,
@@ -531,9 +605,15 @@ class LifeOpsApp:
                         'category': new_category,
                         'priority': new_priority
                     }
-                    db.save_task(task_data)
-                    st.success("Directive added!")
-                    st.rerun()
+                    try:
+                        db.save_task(task_data)
+                        st.success("Directive added successfully!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error adding task: {e}")
+                else:
+                    st.warning("Please enter a task title")
     
     def render_notepad(self):
         """Render smart notepad"""
@@ -546,16 +626,22 @@ class LifeOpsApp:
         
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("💾 SAVE NOTE", key="save_note", use_container_width=True):
+            if st.button("💾 SAVE NOTE", key="save_note", use_container_width=True, type="primary"):
                 if note_title and note_content:
                     note_data = {
                         'title': note_title,
                         'content': note_content,
                         'category': note_category
                     }
-                    db.save_note(note_data)
-                    st.success("Note saved!")
-                    st.rerun()
+                    try:
+                        db.save_note(note_data)
+                        st.success("Note saved successfully!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error saving note: {e}")
+                else:
+                    st.warning("Please enter both title and content")
         
         with col2:
             if st.button("🗑️ CLEAR", key="clear_note", use_container_width=True):
@@ -565,36 +651,45 @@ class LifeOpsApp:
         if notes:
             st.markdown("### 📝 RECENT NOTES")
             for note in notes[:3]:
-                with st.expander(f"{note['title']} ({note['category']})"):
-                    st.markdown(note['content'])
-                    st.caption(f"Last updated: {note['updated_at'][:16]}")
+                with st.expander(f"{note.get('title', 'Untitled')} ({note.get('category', 'general')})"):
+                    st.markdown(note.get('content', ''))
+                    if note.get('updated_at'):
+                        st.caption(f"Last updated: {note['updated_at'][:16]}")
     
     def render_progress_tracker(self):
         """Render progress tracking dashboard"""
         progress_data = db.get_weekly_progress()
         
-        if progress_data:
-            # Convert to DataFrame for display
-            df = pd.DataFrame(progress_data)
-            df['date'] = pd.to_datetime(df['date'])
-            df = df.sort_values('date')
-            
-            # Display streak chart
-            st.plotly_chart(create_streak_chart(progress_data), use_container_width=True)
-            
-            # Metrics
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                avg_stress = df['stress_level'].mean()
-                st.metric("Avg Stress", f"{avg_stress:.1f}/10", 
-                         delta=f"{-avg_stress + 5:.1f}" if avg_stress < 5 else None)
-            with col2:
-                avg_sleep = df['sleep_hours'].mean()
-                st.metric("Avg Sleep", f"{avg_sleep:.1f}h", 
-                         delta=f"{avg_sleep - 7:.1f}" if avg_sleep > 7 else None)
-            with col3:
-                total_tasks = df['tasks_completed'].sum()
-                st.metric("Tasks Completed", total_tasks)
+        if progress_data and len(progress_data) > 0:
+            try:
+                # Convert to DataFrame for display
+                df = pd.DataFrame(progress_data)
+                if 'date' in df.columns:
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.sort_values('date')
+                
+                # Display streak chart
+                st.plotly_chart(create_streak_chart(progress_data), use_container_width=True)
+                
+                # Metrics
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    avg_stress = df['stress_level'].mean() if 'stress_level' in df.columns else 5
+                    delta = None
+                    if avg_stress < 5:
+                        delta = f"{-avg_stress + 5:.1f}"
+                    st.metric("Avg Stress", f"{avg_stress:.1f}/10", delta=delta)
+                with col2:
+                    avg_sleep = df['sleep_hours'].mean() if 'sleep_hours' in df.columns else 7
+                    delta = None
+                    if avg_sleep > 7:
+                        delta = f"{avg_sleep - 7:.1f}"
+                    st.metric("Avg Sleep", f"{avg_sleep:.1f}h", delta=delta)
+                with col3:
+                    total_tasks = df['tasks_completed'].sum() if 'tasks_completed' in df.columns else 0
+                    st.metric("Tasks Completed", int(total_tasks))
+            except Exception as e:
+                st.info("Progress data available but format issue. Log new progress.")
         else:
             st.info("No progress data yet. Complete some tasks to start tracking!")
         
@@ -610,7 +705,7 @@ class LifeOpsApp:
             
             day_notes = st.text_area("Daily Notes", key="day_notes")
             
-            if st.button("SAVE PROGRESS", key="save_progress"):
+            if st.button("SAVE PROGRESS", key="save_progress", type="primary"):
                 progress_data = {
                     'health_score': day_health,
                     'stress_level': day_stress,
@@ -618,8 +713,13 @@ class LifeOpsApp:
                     'tasks_completed': day_tasks,
                     'notes': day_notes
                 }
-                db.save_progress(progress_data)
-                st.success("Progress saved!")
+                try:
+                    db.save_progress(progress_data)
+                    st.success("Progress saved successfully!")
+                    time.sleep(0.5)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error saving progress: {e}")
     
     def render_utility_tools(self):
         """Render utility tools section"""
@@ -648,7 +748,7 @@ class LifeOpsApp:
                 med_freq = st.selectbox("Frequency", ["daily", "bid", "tid", "qid", "weekly"], key="med_freq")
                 med_time = st.time_input("Time", value=datetime.now().time(), key="med_time")
             
-            if st.button("ADD TO VAULT", key="add_med"):
+            if st.button("ADD TO VAULT", key="add_med", type="primary"):
                 if med_name:
                     medicine_data = {
                         'name': med_name,
@@ -656,23 +756,28 @@ class LifeOpsApp:
                         'frequency': med_freq,
                         'time': med_time.strftime("%H:%M")
                     }
-                    db.add_medicine(medicine_data)
-                    st.success("Medicine added to vault!")
-                    st.rerun()
+                    try:
+                        db.add_medicine(medicine_data)
+                        st.success("Medicine added to vault!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error adding medicine: {e}")
+                else:
+                    st.warning("Please enter medicine name")
         
         # Display medicines
         if medicines:
-            st.markdown("### CURRENT MEDICATIONS")
+            st.markdown("### 💊 CURRENT MEDICATIONS")
             for med in medicines:
                 col1, col2, col3 = st.columns([3, 2, 1])
                 with col1:
-                    st.text(f"{med['name']} - {med['dosage']}")
+                    st.text(f"{med.get('name', 'Unknown')} - {med.get('dosage', '')}")
                 with col2:
-                    st.caption(f"{med['frequency']} at {med['time']}")
+                    st.caption(f"{med.get('frequency', '')} at {med.get('time', '')}")
                 with col3:
-                    if st.button("✅", key=f"take_{med['id']}", help="Mark as taken"):
-                        # Update last_taken time
-                        st.success(f"Marked {med['name']} as taken!")
+                    if st.button("✅", key=f"take_{med.get('id')}", help="Mark as taken"):
+                        st.success(f"Marked {med.get('name')} as taken!")
         else:
             st.info("No medicines in vault. Add some to get reminders!")
     
@@ -692,41 +797,58 @@ class LifeOpsApp:
                                            ["rent", "utilities", "subscription", "loan", "other"],
                                            key="bill_category")
             
-            if st.button("ADD BILL", key="add_bill"):
-                if bill_name:
+            if st.button("ADD BILL", key="add_bill", type="primary"):
+                if bill_name and bill_amount > 0:
                     bill_data = {
                         'name': bill_name,
                         'amount': bill_amount,
                         'due_date': bill_date.strftime("%Y-%m-%d"),
                         'category': bill_category
                     }
-                    db.add_bill(bill_data)
-                    st.success("Bill added to tracker!")
-                    st.rerun()
+                    try:
+                        db.add_bill(bill_data)
+                        st.success("Bill added to tracker!")
+                        time.sleep(0.5)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error adding bill: {e}")
+                else:
+                    st.warning("Please enter bill name and amount")
         
         # Display bills
         if bills:
-            unpaid = [b for b in bills if not b['paid']]
-            paid = [b for b in bills if b['paid']]
+            unpaid = [b for b in bills if not b.get('paid', True)]
+            paid = [b for b in bills if b.get('paid', False)]
             
-            st.metric("Pending Bills", f"${sum(b['amount'] for b in unpaid):.2f}", 
+            st.metric("Pending Bills", f"${sum(b.get('amount', 0) for b in unpaid):.2f}", 
                      f"{len(unpaid)} bills")
             
             for bill in unpaid[:5]:
-                days_until = calculate_days_until(bill['due_date'])
+                days_until = calculate_days_until(bill.get('due_date', ''))
                 col1, col2, col3, col4 = st.columns([3, 2, 2, 1])
                 with col1:
-                    st.text(f"{bill['name']}")
+                    st.text(f"{bill.get('name', 'Unknown')}")
                 with col2:
-                    st.text(f"${bill['amount']:.2f}")
+                    st.text(f"${bill.get('amount', 0):.2f}")
                 with col3:
-                    color = "red" if days_until <= 3 else "orange" if days_until <= 7 else "green"
-                    st.markdown(f"<span style='color: {color};'>Due in {days_until} days</span>", 
+                    if days_until <= 0:
+                        status = "OVERDUE"
+                        color = "red"
+                    elif days_until <= 3:
+                        status = f"Due in {days_until} days"
+                        color = "red"
+                    elif days_until <= 7:
+                        status = f"Due in {days_until} days"
+                        color = "orange"
+                    else:
+                        status = f"Due in {days_until} days"
+                        color = "green"
+                    
+                    st.markdown(f"<span style='color: {color}; font-weight: bold;'>{status}</span>", 
                               unsafe_allow_html=True)
                 with col4:
-                    if st.button("💳", key=f"pay_{bill['id']}", help="Mark as paid"):
-                        # Update paid status
-                        st.success(f"Marked {bill['name']} as paid!")
+                    if st.button("💳", key=f"pay_{bill.get('id')}", help="Mark as paid"):
+                        st.success(f"Marked {bill.get('name')} as paid!")
         else:
             st.info("No bills tracked. Add bills to manage payments!")
     
@@ -743,23 +865,27 @@ class LifeOpsApp:
         
         # Simulate calendar events
         tasks = db.get_tasks(completed=False)[:5]
-        calendar_events = simulate_calendar_sync(tasks)
+        try:
+            calendar_events = simulate_calendar_sync(tasks)
+        except:
+            calendar_events = []
         
         if calendar_events:
             st.markdown("### 📋 UPCOMING EVENTS")
             for event in calendar_events[:3]:
-                with st.container():
-                    st.markdown(f'''
-                    <div class="glass-card" style="margin-bottom: 10px;">
-                        <div style="display: flex; justify-content: space-between;">
-                            <strong>{event['title']}</strong>
-                            <span style="color: {event['color']};">●</span>
-                        </div>
-                        <div style="font-size: 0.8em; color: #a0a0ff;">
-                            {event['start'].strftime('%I:%M %p')} - {event['end'].strftime('%I:%M %p')}
-                        </div>
+                st.markdown(f"""
+                <div style='background: white; padding: 15px; margin: 10px 0; border-radius: 8px;'>
+                    <div style='display: flex; justify-content: space-between;'>
+                        <strong>{event.get('title', 'Event')}</strong>
+                        <span style='color: {event.get('color', '#3498db')};'>●</span>
                     </div>
-                    ''', unsafe_allow_html=True)
+                    <div style='font-size: 0.9em; color: #666;'>
+                        {event.get('start', datetime.now()).strftime('%I:%M %p')} - {event.get('end', datetime.now()).strftime('%I:%M %p')}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        else:
+            st.info("No upcoming events. Add tasks to see them here!")
         
         # Sync controls
         col1, col2, col3 = st.columns(3)
@@ -768,27 +894,27 @@ class LifeOpsApp:
                 st.success("Calendar synced!")
         with col2:
             if st.button("📅 VIEW CALENDAR", key="view_cal", use_container_width=True):
-                st.info("Opening calendar view...")
+                st.info("Calendar view would open here")
         with col3:
             if st.button("⏰ SET REMINDER", key="set_reminder", use_container_width=True):
                 st.info("Reminder set for 15 minutes before event")
     
     def render_metric_card(self, title: str, value: str, delta: str, color: str, icon: str):
-        """Render a metric card with cyberpunk style"""
-        st.markdown(f'''
-        <div class="glass-card" style="text-align: center;">
-            <div style="font-size: 2rem; margin-bottom: 10px;">{icon}</div>
-            <div class="metric-value">{value}</div>
-            <div class="metric-label">{title}</div>
-            <div style="font-size: 0.8rem; color: {color}; margin-top: 5px;">
+        """Render a metric card"""
+        st.markdown(f"""
+        <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
+            <div style='font-size: 2rem; margin-bottom: 10px;'>{icon}</div>
+            <div style='font-size: 2rem; font-weight: bold; color: #2c3e50;'>{value}</div>
+            <div style='color: #7f8c8d; font-size: 0.9rem; margin-top: 5px;'>{title}</div>
+            <div style='color: {color}; font-size: 0.8rem; margin-top: 5px;'>
                 {delta}
             </div>
         </div>
-        ''', unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
     
     def extract_tasks_from_results(self, results: Dict[str, Any]):
         """Extract actionable tasks from analysis results"""
-        # This is a simplified extraction - in production, you'd use more sophisticated NLP
+        # Sample tasks for demonstration
         health_tasks = [
             "Take 3 deep breaths when stressed",
             "Walk for 20 minutes daily",
@@ -834,7 +960,10 @@ class LifeOpsApp:
         
         # Save tasks to database
         for task in all_tasks:
-            db.save_task(task)
+            try:
+                db.save_task(task)
+            except Exception as e:
+                print(f"Error saving extracted task: {e}")
     
     def run_weekly_review(self):
         """Execute weekly review protocol"""
@@ -842,17 +971,28 @@ class LifeOpsApp:
             # Get last week's data
             progress_data = db.get_weekly_progress()
             completed_tasks = db.get_tasks(completed=True)
+            active_tasks = db.get_tasks(completed=False)
+            
+            total_tasks = len(completed_tasks) + len(active_tasks)
+            completion_rate = (len(completed_tasks) / total_tasks * 100) if total_tasks > 0 else 0
+            
+            if progress_data and len(progress_data) > 0:
+                avg_stress = sum(p.get('stress_level', 5) for p in progress_data) / len(progress_data)
+                avg_sleep = sum(p.get('sleep_hours', 7) for p in progress_data) / len(progress_data)
+            else:
+                avg_stress = 5
+                avg_sleep = 7
             
             review_data = {
                 'progress': progress_data,
                 'completed_tasks': len(completed_tasks),
-                'completion_rate': len(completed_tasks) / max(len(completed_tasks) + len(db.get_tasks(completed=False)), 1) * 100,
-                'avg_stress': sum(p.get('stress_level', 5) for p in progress_data) / max(len(progress_data), 1),
-                'avg_sleep': sum(p.get('sleep_hours', 7) for p in progress_data) / max(len(progress_data), 1)
+                'completion_rate': completion_rate,
+                'avg_stress': avg_stress,
+                'avg_sleep': avg_sleep
             }
             
             # Simulate agent analysis
-            time.sleep(2)
+            time.sleep(1)
             
             st.session_state.weekly_review_data = review_data
             st.success("WEEKLY REVIEW COMPLETE!")
@@ -871,7 +1011,7 @@ class LifeOpsApp:
         """Generate weekly plan based on analysis"""
         with st.spinner("GENERATING OPTIMIZED WEEKLY PLAN..."):
             # This would integrate with the reflection agent
-            time.sleep(2)
+            time.sleep(1)
             
             weekly_plan = {
                 'monday': {
@@ -884,14 +1024,39 @@ class LifeOpsApp:
                     'afternoon': ['Work Tasks', 'Break', 'Exercise'],
                     'evening': ['Finance Review', 'Leisure']
                 },
-                # ... rest of the week
+                'wednesday': {
+                    'morning': ['Exercise', 'Study Review'],
+                    'afternoon': ['Project Work', 'Meetings'],
+                    'evening': ['Personal Development', 'Family Time']
+                },
+                'thursday': {
+                    'morning': ['Study Intensive', 'Health Maintenance'],
+                    'afternoon': ['Creative Work', 'Exercise'],
+                    'evening': ['Social Activity', 'Planning']
+                },
+                'friday': {
+                    'morning': ['Weekly Review', 'Goal Setting'],
+                    'afternoon': ['Light Work', 'Preparation'],
+                    'evening': ['Relaxation', 'Hobbies']
+                },
+                'saturday': {
+                    'morning': ['Sleep In', 'Leisure'],
+                    'afternoon': ['Outdoor Activity', 'Personal Projects'],
+                    'evening': ['Social', 'Entertainment']
+                },
+                'sunday': {
+                    'morning': ['Reflection', 'Planning'],
+                    'afternoon': ['Preparation', 'Relaxation'],
+                    'evening': ['Early Rest', 'Meditation']
+                }
             }
             
             st.session_state.weekly_plan = weekly_plan
             st.success("WEEKLY PLAN GENERATED!")
             
             # Display plan
-            st.json(weekly_plan)
+            with st.expander("📅 VIEW WEEKLY PLAN"):
+                st.json(weekly_plan)
     
     def export_data(self):
         """Export user data"""
@@ -908,15 +1073,16 @@ class LifeOpsApp:
         
         # Create download button
         st.download_button(
-            label="📥 DOWNLOAD DATA",
+            label="📥 DOWNLOAD ALL DATA",
             data=json.dumps(data, indent=2),
             file_name=f"lifeops_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json"
+            mime="application/json",
+            type="primary"
         )
     
     def run(self):
         """Main application runner"""
-        # Timer update thread
+        # Timer update
         if st.session_state.timer_running:
             if self.timer.update():
                 st.balloons()

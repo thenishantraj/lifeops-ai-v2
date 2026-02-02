@@ -1,12 +1,12 @@
 """
 LifeOps AI v2 - Enhanced Multi-Agent System
+FIXED VERSION for Streamlit Cloud
 """
 import os
-from typing import List, Optional
+from typing import List
 from crewai import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.tools import tool
-from langchain.agents import Tool
+from langchain.agents import Tool  # FIXED IMPORT
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -15,7 +15,7 @@ load_dotenv()
 class LifeOpsTools:
     """Simulated tools for agent tool calling"""
     
-    @tool("Validate Health Recommendation")
+    @staticmethod
     def validate_health_recommendation(recommendation: str) -> str:
         """Validate health recommendations for safety and practicality"""
         validation_checks = [
@@ -27,12 +27,12 @@ class LifeOpsTools:
         ]
         return f"VALIDATION COMPLETE:\n" + "\n".join(validation_checks)
     
-    @tool("Cross-Domain Impact Analysis")
+    @staticmethod
     def cross_domain_analysis(recommendation: str, domains: List[str]) -> str:
         """Analyze impact of recommendations across life domains"""
         return f"CROSS-DOMAIN ANALYSIS:\n• Health impact: Moderate\n• Financial impact: Low\n• Study impact: High\n• Overall synergy: 85%"
     
-    @tool("Schedule Feasibility Check")
+    @staticmethod
     def check_schedule_feasibility(task: str, duration: int) -> str:
         """Check if a task fits into the user's schedule"""
         return f"SCHEDULE FEASIBILITY: Task '{task}' of {duration} minutes fits into daily routine with 90% probability"

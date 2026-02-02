@@ -104,7 +104,7 @@ LifeOps AI uses a multi-agent system where specialized AI agents analyze each li
 │   │                  SQLite Database                     │  │
 │   └──────────────────────────────────────────────────────┘  │
 
-
+---
 ### 🔧 Technology Stack
 - **Frontend**: Streamlit (Python web framework)
 - **AI Framework**: CrewAI (multi-agent orchestration)

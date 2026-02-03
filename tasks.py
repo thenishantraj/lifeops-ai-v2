@@ -1,308 +1,209 @@
 """
-LifeOps AI v2 - Enhanced Tasks with Tool Integration
+LifeOps AI v2 - Enhanced Tasks for CrewAI
 """
 from crewai import Task
-from typing import Dict, Any, List
+from typing import Dict, Any
 from agents import LifeOpsAgents
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
 
 class LifeOpsTasks:
-    """Container for all LifeOps AI v2 tasks with tool integration"""
+    """Container for all LifeOps AI v2 tasks"""
     
     def __init__(self, user_context: Dict[str, Any]):
         self.user_context = user_context
         self.agents = LifeOpsAgents()
     
     def create_health_analysis_task(self) -> Task:
-        """Task for health agent with tool calling"""
+        """Task for health agent v2 with medicine tracking"""
         health_agent = self.agents.create_health_agent()
         
         return Task(
-            description=f"""ANALYSIS PROTOCOL: HEALTH DOMAIN v2.0
+            description=f"""Analyze the user's health situation comprehensively with medicine awareness:
             
-            COMMAND: Execute comprehensive biometric and wellness analysis.
+            User Context:
+            - Stress Level: {self.user_context.get('stress_level', 'Not specified')}/10
+            - Sleep Pattern: {self.user_context.get('sleep_hours', 'Not specified')} hours
+            - Exercise Frequency: {self.user_context.get('exercise_frequency', 'Not specified')}
+            - Current Medicines: {self.user_context.get('medicines', 'None specified')}
+            - Problem: {self.user_context.get('problem', 'No specific problem mentioned')}
             
-            USER PROFILE:
-            - Stress Index: {self.user_context.get('stress_level', 'N/A')}/10
-            - Sleep Metrics: {self.user_context.get('sleep_hours', 'N/A')} hrs | Quality: {self.user_context.get('sleep_quality', 'N/A')}
-            - Exercise Frequency: {self.user_context.get('exercise_frequency', 'N/A')}
-            - Nutrition Score: {self.user_context.get('nutrition_score', 'N/A')}/10
-            - Energy Levels: {self.user_context.get('energy_level', 'N/A')}/10
+            Your Analysis Should Include:
+            1. Current health risk assessment with medicine considerations
+            2. Immediate stress reduction strategies
+            3. Sleep optimization plan
+            4. Exercise recommendations considering current energy levels
+            5. Nutrition tips for stress management
+            6. Medicine adherence strategies if applicable
+            7. Action items for immediate implementation
             
-            PRIMARY OBJECTIVE: {self.user_context.get('problem', 'General optimization')}
-            
-            REQUIRED OUTPUT SECTIONS:
-            1. HEALTH DEBT INDEX Calculation (0-100)
-            2. Immediate Bio-Corrections (Next 24h)
-            3. Weekly Wellness Protocol
-            4. Predictive Health Trajectory
-            5. Tool-Validated Recommendations
-            
-            TOOL DEPLOYMENT:
-            - Use HealthValidation tool on all recommendations
-            - Generate at least 3 actionable directives with validation stamps
-            
-            CONSIDER CROSS-DOMAIN SYNERGY:
-            - Health → Productivity conversion rate
-            - Sleep quality impact on financial decisions
-            - Exercise ROI on cognitive performance
-            
-            FORMAT: Military briefing style with validation checkmarks.""",
+            Use the schedule_action_item tool for key recommendations.
+            Format your output with clear sections and actionable steps.
+            """,
             agent=health_agent,
-            expected_output="""HEALTH COMMAND BRIEFING:
-            1. HEALTH DEBT INDEX: [Score]/100
-            2. VALIDATED DIRECTIVES:
-               - [✓] Directive 1 with validation
-               - [✓] Directive 2 with validation
-               - [✓] Directive 3 with validation
-            3. WEEKLY PROTOCOL:
-               - Daily routines
-               - Nutrition plan
-               - Recovery schedule
-            4. PREDICTIVE METRICS:
-               - Expected energy gain
-               - Stress reduction projection
-            5. TOOL VALIDATION LOG"""
+            expected_output="""A comprehensive health analysis with:
+            1. Risk Assessment (Low/Medium/High)
+            2. Immediate Actions (next 24 hours)
+            3. Medicine Management Plan (if applicable)
+            4. Weekly Health Schedule
+            5. Action Items (use tool to schedule)
+            6. Cross-domain Considerations
+            """
         )
     
     def create_finance_analysis_task(self) -> Task:
-        """Task for finance agent with predictive analytics"""
+        """Task for finance agent v2 with bill tracking"""
         finance_agent = self.agents.create_finance_agent()
         
         return Task(
-            description=f"""ANALYSIS PROTOCOL: FINANCE DOMAIN v2.0
+            description=f"""Analyze the user's financial situation with bill management:
             
-            COMMAND: Execute financial optimization with predictive modeling.
+            User Context:
+            - Monthly Budget: ${self.user_context.get('monthly_budget', 'Not specified')}
+            - Current Expenses: ${self.user_context.get('current_expenses', 'Not specified')}
+            - Financial Goals: {self.user_context.get('financial_goals', 'Not specified')}
+            - Recurring Bills: {self.user_context.get('bills', 'None specified')}
+            - Problem: {self.user_context.get('problem', 'No specific problem mentioned')}
             
-            FINANCIAL PARAMETERS:
-            - Monthly Budget Allocation: ${self.user_context.get('monthly_budget', 'N/A')}
-            - Current Expense Burn Rate: ${self.user_context.get('current_expenses', 'N/A')}/month
-            - Savings Rate: {(self.user_context.get('monthly_budget', 0) - self.user_context.get('current_expenses', 0)) / max(self.user_context.get('monthly_budget', 1), 1) * 100:.1f}%
-            - Financial Goals: {self.user_context.get('financial_goals', 'N/A')}
+            Your Analysis Should Include:
+            1. Budget allocation with bill prioritization
+            2. Expense optimization opportunities
+            3. Automated bill payment strategy
+            4. Savings strategy considering upcoming bills
+            5. Investment recommendations for health/study
+            6. Action items for financial tasks
             
-            PRIMARY OBJECTIVE: {self.user_context.get('problem', 'Financial optimization')}
-            
-            REQUIRED OUTPUT SECTIONS:
-            1. FINANCIAL AUTOPILOT Configuration
-            2. Predictive Budget Trajectory (30-day forecast)
-            3. Expense Optimization Matrix
-            4. Investment Priority Queue
-            5. Cross-Domain Resource Allocation
-            
-            TOOL DEPLOYMENT:
-            - Use CrossDomainAnalysis on major financial decisions
-            - Calculate opportunity costs across domains
-            
-            AUTOMATION PROTOCOLS:
-            - Bill payment automation rules
-            - Savings auto-allocation
-            - Expense categorization AI
-            
-            FORMAT: Financial command dashboard with predictive charts.""",
+            Use the schedule_action_item tool for key recommendations.
+            Provide specific, actionable financial advice.
+            """,
             agent=finance_agent,
-            expected_output="""FINANCE COMMAND BRIEFING:
-            1. AUTOPILOT STATUS: [Active/Configuring]
-            2. 30-DAY FORECAST:
-               - Projected savings: $X
-               - Expense reduction: Y%
-            3. OPTIMIZATION MATRIX:
-               - High-impact changes
-               - Low-effort adjustments
-            4. CROSS-DOMAIN ALLOCATION:
-               - Health investment: $Z
-               - Study resources: $W
-            5. AUTOMATION RULES DEPLOYED"""
+            expected_output="""A detailed financial plan with:
+            1. Budget Allocation with Bill Calendar
+            2. Expense Optimization Tips
+            3. Automated Financial Workflow
+            4. Savings Strategy with Bill Buffer
+            5. Action Items (use tool to schedule)
+            6. Cross-domain Financial Implications
+            """
         )
     
     def create_study_analysis_task(self) -> Task:
-        """Task for study agent with cognitive optimization"""
+        """Task for study agent v2 with Pomodoro techniques"""
         study_agent = self.agents.create_study_agent()
         
         days_until_exam = self.user_context.get('days_until_exam', 0)
-        exam_date = self.user_context.get('exam_date', 'N/A')
+        exam_date = self.user_context.get('exam_date', 'Not specified')
         
         return Task(
-            description=f"""ANALYSIS PROTOCOL: STUDY DOMAIN v2.0
+            description=f"""Analyze the user's study situation with focus techniques:
             
-            COMMAND: Execute cognitive optimization and knowledge acquisition protocol.
+            User Context:
+            - Upcoming Exam: {exam_date} ({days_until_exam} days from now)
+            - Current Study Hours: {self.user_context.get('current_study_hours', 'Not specified')}/day
+            - Subjects/Topics: {self.user_context.get('subjects', 'Not specified')}
+            - Current Focus Level: {self.user_context.get('focus_level', 'Not specified')}/10
+            - Problem: {self.user_context.get('problem', 'No specific problem mentioned')}
             
-            LEARNING PARAMETERS:
-            - Mission Critical Date: {exam_date} (T-{days_until_exam} days)
-            - Current Study Throughput: {self.user_context.get('current_study_hours', 'N/A')} hrs/day
-            - Focus Duration: {self.user_context.get('focus_duration', 'N/A')} min/session
-            - Retention Rate Target: {self.user_context.get('retention_target', 85)}%
+            Your Analysis Should Include:
+            1. Smart Pomodoro schedule (adaptive break times)
+            2. Focus technique recommendations
+            3. Burnout prevention with micro-breaks
+            4. Resource optimization
+            5. Progress tracking system
+            6. Action items for study sessions
             
-            PRIMARY OBJECTIVE: {self.user_context.get('problem', 'Academic optimization')}
-            
-            REQUIRED OUTPUT SECTIONS:
-            1. COGNITIVE LOAD OPTIMIZATION Schedule
-            2. Spaced Repetition Algorithm Configuration
-            3. Focus State Management Protocol
-            4. Knowledge Retention Assurance
-            5. Burnout Prevention Shield
-            
-            TOOL DEPLOYMENT:
-            - Use ScheduleFeasibility on all study blocks
-            - Validate against other domain commitments
-            
-            NEURO-OPTIMIZATION:
-            - Optimal study-rest ratios
-            - Memory consolidation timing
-            - Peak cognitive state alignment
-            
-            FORMAT: Neural network optimization report with timing diagrams.""",
+            Use the schedule_action_item and set_reminder tools.
+            Create a realistic, sustainable study plan.
+            """,
             agent=study_agent,
-            expected_output="""STUDY COMMAND BRIEFING:
-            1. COGNITIVE LOAD MAP:
-               - Daily focus blocks
-               - Break optimization
-            2. SPACED REPETITION SCHEDULE:
-               - Review intervals
-               - Practice sessions
-            3. RETENTION ASSURANCE: X%
-            4. FOCUS STATE PROTOCOLS:
-               - Preparation rituals
-               - Deep work windows
-            5. VALIDATION LOG:
-               - Schedule feasibility checks
-               - Cross-domain conflicts resolved"""
+            expected_output="""A comprehensive study plan with:
+            1. Smart Pomodoro Schedule
+            2. Focus Technique Recommendations
+            3. Adaptive Break Strategy
+            4. Progress Tracking System
+            5. Action Items (use tools to schedule)
+            6. Cross-domain Considerations
+            """
         )
     
     def create_life_coordination_task(self, health_output: str, finance_output: str, study_output: str) -> Task:
-        """Master coordination task with Gemini Validation Protocol"""
+        """Master task v2 with Gemini Validation Protocol"""
         coordinator = self.agents.create_life_coordinator()
         
         return Task(
-            description=f"""GEMINI VALIDATION PROTOCOL: LIFE COORDINATION v2.0
+            description=f"""You are the Life Operations Coordinator with Gemini Validation Protocol. 
             
-            COMMAND: Execute cross-domain integration with validation checks.
+            MANDATORY: Before creating final plan, you MUST validate each domain's recommendations 
+            using the validate_cross_domain tool to ensure consistency and feasibility.
             
-            DOMAIN INPUTS:
+            User's Primary Problem: {self.user_context.get('problem', 'General life optimization')}
             
-            [HEALTH COMMAND]
+            Domain Insights to Validate:
+            
+            HEALTH ANALYSIS:
             {health_output}
             
-            [FINANCE COMMAND]
+            FINANCE ANALYSIS:
             {finance_output}
             
-            [STUDY COMMAND]
+            STUDY ANALYSIS:
             {study_output}
             
-            USER PRIORITY DIRECTIVE: {self.user_context.get('problem', 'Multi-domain optimization')}
+            Your Coordination Protocol:
+            1. VALIDATE each domain output using the validation tool
+            2. Identify conflicts between validated recommendations
+            3. Make trade-off decisions with evidence
+            4. Create unified schedule with time blocking
+            5. Generate Priority Matrix (Urgent/Important)
+            6. Schedule action items for key tasks
+            7. Provide validation report summary
             
-            EXECUTION PROTOCOL:
-            1. GEMINI VALIDATION PHASE:
-               - Logical consistency check across all domains
-               - Resource conflict resolution
-               - Timeline synchronization
-            
-            2. STRATEGIC INTEGRATION:
-               - Create 4D Optimization Matrix (Time × Resource × Energy × Priority)
-               - Generate Unified Command Schedule
-               - Set progress tracking metrics
-            
-            3. VALIDATION CERTIFICATION:
-               - Each directive must pass cross-domain validation
-               - Issue validation certificates for approved actions
-               - Flag conflicts requiring manual override
-            
-            4. COMMAND CENTER DEPLOYMENT:
-               - Convert validated directives to executable tasks
-               - Assign priority levels (Alpha, Beta, Gamma)
-               - Set automated tracking parameters
-            
-            OUTPUT MUST INCLUDE:
-            - Validation Certificate for each integrated directive
-            - Conflict Resolution Log
-            - 7-Day Command Schedule
-            - Progress Tracking Dashboard Configuration""",
+            Your output MUST include:
+            - Validation report from Gemini Validation Protocol
+            - Approved recommendations
+            - Rejected/modified recommendations with reasoning
+            - Final integrated schedule
+            """,
             agent=coordinator,
-            expected_output="""LIFE COMMAND BRIEFING:
-            
-            GEMINI VALIDATION PROTOCOL: COMPLETE
-            
-            1. VALIDATION CERTIFICATES ISSUED:
-               - [CERT-001] Health Directive: ✓ Approved
-               - [CERT-002] Finance Directive: ✓ Approved
-               - [CERT-003] Study Directive: ✓ Approved
-            
-            2. CONFLICT RESOLUTION LOG:
-               - Resolved: 3 conflicts
-               - Manual Override Required: 0
-            
-            3. UNIFIED COMMAND SCHEDULE:
-               - Daily execution timeline
-               - Resource allocation map
-               - Priority task queue
-            
-            4. PROGRESS TRACKING CONFIG:
-               - Key Performance Indicators
-               - Daily checkpoints
-               - Weekly review triggers
-            
-            5. 4D OPTIMIZATION MATRIX:
-               - Time efficiency: X%
-               - Resource utilization: Y%
-               - Energy alignment: Z%
-               - Priority satisfaction: W%""",
+            expected_output="""A comprehensive validated life coordination plan with:
+            1. GEMINI VALIDATION PROTOCOL REPORT
+            2. Approved Recommendations by Domain
+            3. Conflict Resolution Log
+            4. Priority Matrix (Validated)
+            5. Unified Weekly Schedule (Time-blocked)
+            6. Scheduled Action Items
+            7. Success Metrics & Validation Scores
+            """,
             context=[health_output, finance_output, study_output]
         )
     
-    def create_reflection_task(self, week_data: Dict[str, Any]) -> Task:
-        """Weekly reflection and adjustment task"""
+    def create_weekly_reflection_task(self, week_data: Dict[str, Any]) -> Task:
+        """Task for weekly reflection agent"""
         reflection_agent = self.agents.create_reflection_agent()
         
         return Task(
-            description=f"""SUNDAY REVIEW PROTOCOL: WEEKLY REFLECTION v2.0
+            description=f"""Analyze the user's weekly performance and provide insights:
             
-            COMMAND: Analyze past week's performance and adjust strategies.
-            
-            WEEKLY DATA INPUT:
+            Weekly Data:
             {json.dumps(week_data, indent=2)}
             
-            ANALYSIS PROTOCOL:
-            1. PATTERN DETECTION:
-               - Success patterns replication
-               - Failure pattern avoidance
-               - Efficiency trend analysis
+            Your Analysis Should Include:
+            1. Pattern recognition in completed tasks
+            2. Consistency streak analysis
+            3. Productivity correlation with time of day
+            4. Health-finance-study balance assessment
+            5. Improvement recommendations for next week
+            6. Celebration of achievements
             
-            2. STRATEGY ADJUSTMENT:
-               - Tweak protocols based on data
-               - Optimize resource allocation
-               - Adjust timing parameters
-            
-            3. PREDICTIVE ADVISORY:
-               - Next week's optimal path
-               - Risk anticipation
-               - Opportunity identification
-            
-            4. LEARNING INTEGRATION:
-               - Incorporate lessons learned
-               - Update personal algorithms
-               - Refine goal trajectories
-            
-            OUTPUT: Reflection report with adjusted protocols.""",
+            Provide data-driven insights with specific recommendations.
+            """,
             agent=reflection_agent,
-            expected_output="""WEEKLY REFLECTION REPORT:
-            
-            1. PATTERN ANALYSIS:
-               - Top 3 successful patterns
-               - Primary improvement areas
-               - Efficiency gains identified
-            
-            2. STRATEGY ADJUSTMENTS:
-               - Modified protocols
-               - Resource reallocation
-               - Timing optimizations
-            
-            3. PREDICTIVE OUTLOOK:
-               - Next week's forecast
-               - Risk mitigation plan
-               - Opportunity map
-            
-            4. LEARNING INTEGRATION:
-               - Algorithm updates
-               - Goal trajectory refinement
-               - Personal growth metrics"""
+            expected_output="""A comprehensive weekly reflection report with:
+            1. Performance Metrics Summary
+            2. Pattern Analysis
+            3. Consistency Score
+            4. Improvement Recommendations
+            5. Next Week Forecast
+            6. Celebration Points
+            """
         )

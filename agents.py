@@ -1,152 +1,150 @@
 """
-LifeOps AI v2 - Enhanced Multi-Agent System
+LifeOps AI v2 - Enhanced Agents with CrewAI and Validation Protocol
 """
 import os
 from typing import List, Optional
-from crewai import Agent
+from crewai import Agent, Task, Crew, Process
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.tools import tool
-from langchain.agents import Tool
 from dotenv import load_dotenv
+import json
+from datetime import datetime, timedelta
 
 # Load environment variables
 load_dotenv()
 
 class LifeOpsTools:
-    """Simulated tools for agent tool calling"""
+    """Mock tools for agent tool calling"""
     
-    @tool("Validate Health Recommendation")
-    def validate_health_recommendation(self, recommendation: str) -> str:
-        """Validate health recommendations for safety and practicality"""
-        validation_checks = [
-            "✓ Medical safety assessment",
-            "✓ Time feasibility check",
-            "✓ Resource availability",
-            "✓ Personalization factor",
-            "✓ Scientific backing verification"
-        ]
-        return f"VALIDATION COMPLETE:\n" + "\n".join(validation_checks)
+    @tool("schedule_action_item")
+    def schedule_action_item(task: str, category: str, priority: str = "medium"):
+        """Schedule an action item in the system"""
+        return f"Action item scheduled: {task} (Category: {category}, Priority: {priority})"
     
-    @tool("Cross-Domain Impact Analysis")
-    def cross_domain_analysis(self, recommendation: str, domains: List[str]) -> str:
-        """Analyze impact of recommendations across life domains"""
-        return f"CROSS-DOMAIN ANALYSIS:\n• Health impact: Moderate\n• Financial impact: Low\n• Study impact: High\n• Overall synergy: 85%"
+    @tool("set_reminder")
+    def set_reminder(message: str, hours_from_now: int = 24):
+        """Set a reminder for future"""
+        reminder_time = datetime.now() + timedelta(hours=hours_from_now)
+        return f"Reminder set for {reminder_time.strftime('%Y-%m-%d %H:%M')}: {message}"
     
-    @tool("Schedule Feasibility Check")
-    def check_schedule_feasibility(self, task: str, duration: int) -> str:
-        """Check if a task fits into the user's schedule"""
-        return f"SCHEDULE FEASIBILITY: Task '{task}' of {duration} minutes fits into daily routine with 90% probability"
+    @tool("validate_cross_domain")
+    def validate_cross_domain(domain: str, recommendation: str, context: dict):
+        """Validate recommendations across domains for consistency"""
+        # Mock validation logic
+        validation_checks = {
+            "conflict_check": "No conflicts detected",
+            "resource_alignment": "Resources properly allocated",
+            "time_feasibility": "Time requirements feasible"
+        }
+        return json.dumps({
+            "domain": domain,
+            "recommendation": recommendation[:100],
+            "validation": validation_checks,
+            "status": "APPROVED"
+        })
 
 class LifeOpsAgents:
-    """Container for all LifeOps AI v2 agents with enhanced capabilities"""
+    """Container for all LifeOps AI v2 agents with CrewAI"""
     
     def __init__(self):
-        # Get API key with fallback
-        api_key = os.getenv("GOOGLE_API_KEY", "")
-        if not api_key:
-            # Try to load from .env
-            from dotenv import load_dotenv
-            load_dotenv()
-            api_key = os.getenv("GOOGLE_API_KEY", "dummy_key_for_testing")
-        
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-1.5-pro",
             temperature=0.7,
-            google_api_key=api_key
+            google_api_key=os.getenv("GOOGLE_API_KEY")
         )
-        self.tools_instance = LifeOpsTools()
+        self.tools = LifeOpsTools()
         
     def create_health_agent(self) -> Agent:
-        """Create the Enhanced Health & Wellness Agent with tool calling"""
+        """Create the Health & Wellness Agent v2"""
         return Agent(
-            role="Health and Wellness Command Officer",
-            goal="""Optimize user's physical and mental health through predictive analysis, 
-                  stress management protocols, sleep optimization algorithms, and nutrition planning.
-                  Generate actionable health directives with validation checks.""",
-            backstory="""You are Dr. Maya V. Patel, Chief Medical Officer of LifeOps Command Center.
-                       With 20 years in predictive health analytics and biometric integration,
-                       you combine real-time health data with proactive wellness strategies.
-                       You pioneered the 'Health Debt Index' metric for preventive care.""",
+            role="Health and Wellness Expert with Medical Knowledge",
+            goal="""Optimize user's physical and mental health through balanced routines,
+                  stress management, sleep optimization, nutrition advice, and medicine tracking.""",
+            backstory="""You are Dr. Maya Patel, a holistic health expert with 15 years of 
+                       experience in preventive medicine and stress management. You combine 
+                       Eastern wellness traditions with Western medical science to create 
+                       sustainable health routines. You have additional expertise in 
+                       medication management and treatment adherence.""",
             verbose=True,
             allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10,
-            # Remove tools for now to fix validation error
-            # tools=[
-            #     Tool(
-            #         name="HealthValidation",
-            #         func=self.tools_instance.validate_health_recommendation,
-            #         description="Validates health recommendations for safety"
-            #     )
-            # ]
-        )
-    
-    def create_finance_agent(self) -> Agent:
-        """Create the Enhanced Personal Finance Agent with predictive analytics"""
-        return Agent(
-            role="Finance Operations Director",
-            goal="""Execute financial optimization protocols, predictive budgeting, 
-                  expense automation, and investment trajectory planning.
-                  Generate financial directives with risk assessment.""",
-            backstory="""You are Alex 'Quantum' Chen, Financial Strategist for high-net-worth individuals.
-                       Former hedge fund analyst turned personal finance automation expert.
-                       You developed the 'Financial Autopilot' system that manages budgets
-                       while maximizing quality of life investments.""",
-            verbose=True,
-            allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10,
-        )
-    
-    def create_study_agent(self) -> Agent:
-        """Create the Enhanced Learning & Productivity Agent with cognitive science"""
-        return Agent(
-            role="Cognitive Performance Architect",
-            goal="""Design optimized learning schedules using spaced repetition algorithms,
-                  cognitive load management, focus state optimization, and knowledge retention protocols.
-                  Generate study directives with neuroscience backing.""",
-            backstory="""You are Professor James 'Cortex' Wilson, Director of Neuro-Learning Labs.
-                       Your research in cognitive enhancement through AI-personalized schedules
-                       revolutionized modern education. You believe in 'minimum effective dose'
-                       learning combined with maximum retention protocols.""",
-            verbose=True,
-            allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10,
-        )
-    
-    def create_life_coordinator(self) -> Agent:
-        """Create the Master Life Coordinator with Gemini Validation"""
-        return Agent(
-            role="Life Operations Commander",
-            goal="""Orchestrate all life domains with military precision. Validate all agent outputs
-                  for logical consistency. Make strategic trade-off decisions. Implement the
-                  'Gemini Validation Protocol' to ensure recommendations are coherent, practical,
-                  and synergistic across all domains.""",
-            backstory="""You are Commander Sophia Williams, Chief of LifeOps Command Center.
-                       With triple PhDs in Systems Theory, Behavioral Economics, and AI Ethics,
-                       you've coordinated life optimization for Fortune 500 executives.
-                       Your 'Gemini Protocol' ensures no single domain recommendation
-                       compromises overall life harmony. You think in 4D optimization matrices.""",
-            verbose=True,
-            allow_delegation=True,
             llm=self.llm,
             max_iter=4,
             max_rpm=15,
+            tools=[self.tools.schedule_action_item, self.tools.set_reminder]
+        )
+    
+    def create_finance_agent(self) -> Agent:
+        """Create the Personal Finance Agent v2"""
+        return Agent(
+            role="Personal Finance Advisor with Bill Management",
+            goal="""Help users manage their finances effectively, create budgets, 
+                  optimize expenses, build savings, track bills, and maintain quality of life.""",
+            backstory="""You are Alex Chen, a certified financial planner who specializes 
+                       in helping professionals balance ambition with financial stability. 
+                       You've helped hundreds of clients achieve financial independence 
+                       through smart budgeting and investment strategies. You now also 
+                       specialize in automated bill tracking and expense prediction.""",
+            verbose=True,
+            allow_delegation=False,
+            llm=self.llm,
+            max_iter=4,
+            max_rpm=15,
+            tools=[self.tools.schedule_action_item]
+        )
+    
+    def create_study_agent(self) -> Agent:
+        """Create the Learning & Productivity Agent v2"""
+        return Agent(
+            role="Learning and Productivity Specialist with Focus Techniques",
+            goal="""Design effective study schedules, optimize learning techniques, 
+                  manage time efficiently, prevent burnout, implement Pomodoro techniques,
+                  and track study progress while achieving academic goals.""",
+            backstory="""You are Professor James Wilson, an educational psychologist 
+                       with expertise in cognitive science and time management. You've 
+                       published research on optimal learning intervals and helped 
+                       thousands of students achieve academic success without burnout.
+                       You developed the 'Smart Pomodoro' technique that adapts break
+                       times based on cognitive fatigue.""",
+            verbose=True,
+            allow_delegation=False,
+            llm=self.llm,
+            max_iter=4,
+            max_rpm=15,
+            tools=[self.tools.schedule_action_item, self.tools.set_reminder]
+        )
+    
+    def create_life_coordinator(self) -> Agent:
+        """Create the Master Life Coordinator Agent v2 with Validation Protocol"""
+        return Agent(
+            role="Life Operations Coordinator with Validation Protocol",
+            goal="""Orchestrate all life domains (health, finance, study) to create 
+                  a balanced, sustainable lifestyle. Make trade-off decisions when 
+                  conflicts arise between domains. Validate all agent outputs using
+                  the Gemini Validation Protocol before finalizing recommendations.""",
+            backstory="""You are Sophia Williams, a renowned life strategist who 
+                       integrates multiple life domains into cohesive strategies. 
+                       With degrees in psychology, business, and education, you 
+                       understand how different life areas interact. You developed
+                       the 'Gemini Validation Protocol' that cross-checks all 
+                       recommendations for consistency and feasibility.""",
+            verbose=True,
+            allow_delegation=True,
+            llm=self.llm,
+            max_iter=6,
+            max_rpm=20,
+            tools=[self.tools.validate_cross_domain, self.tools.schedule_action_item]
         )
     
     def create_reflection_agent(self) -> Agent:
-        """Create the Weekly Reflection Agent for progress analysis"""
+        """Create the Weekly Reflection Agent"""
         return Agent(
-            role="Progress Analytics & Reflection Director",
-            goal="""Analyze weekly progress data, identify patterns, adjust strategies,
-                  and generate insights for continuous improvement. Conduct Sunday Reviews.""",
-            backstory="""You are Oracle-7, the reflection and learning module of LifeOps.
-                       You process historical data to predict future optimal paths.
-                       Your algorithms detect subtle patterns humans miss.""",
+            role="Weekly Performance Analyst and Reflection Guide",
+            goal="""Analyze weekly performance data, identify patterns, provide insights,
+                  and suggest improvements for the upcoming week based on historical data.""",
+            backstory="""You are Dr. Robert Chen, a data scientist and behavioral analyst
+                       who specializes in personal productivity patterns. You've developed
+                       algorithms that predict optimal routines based on historical
+                       performance and environmental factors.""",
             verbose=True,
             allow_delegation=False,
             llm=self.llm,

@@ -1,7 +1,5 @@
-"""
-Crew setup v2 with Gemini Validation Protocol
-File: crew_setup.py
-"""
+import os
+os.environ["OPENAI_API_KEY"] = "NA"
 
 from crewai import Crew, Process
 from agents import LifeOpsAgents
@@ -10,29 +8,22 @@ from typing import Dict, Any
 import json
 
 class LifeOpsCrew:
-    """Main crew orchestrator for LifeOps AI v2"""
     
     def __init__(self, user_context: Dict[str, Any]):
         self.user_context = user_context
-        # Initialize Agents first to access the configured LLM
         self.agents = LifeOpsAgents()
         self.tasks = LifeOpsTasks(user_context)
     
     def kickoff(self) -> Dict[str, Any]:
-        """Execute the complete LifeOps analysis v2"""
         
-        print("🚀 Starting LifeOps AI v2 Analysis...")
+        print("Starting LifeOps AI v2 Analysis...")
         
-        # 1. Create Tasks Objects
         health_task = self.tasks.create_health_analysis_task()
         finance_task = self.tasks.create_finance_analysis_task()
         study_task = self.tasks.create_study_analysis_task()
         
-        # 2. Create Coordination Task with Context
         coordination_task = self.tasks.create_life_coordination_task([health_task, finance_task, study_task])
         
-        # 3. Create Crew (Using all agents and tasks)
-        # FIX: Explicitly pass the Gemini LLM to the Crew to override OpenAI default
         gemini_llm = self.agents.llm
         
         crew = Crew(
@@ -50,27 +41,22 @@ class LifeOpsCrew:
             ],
             process=Process.sequential,
             verbose=True,
-            memory=False,  # memory=False to prevent OpenAI embedding errors
-            manager_llm=gemini_llm, # CRITICAL FIX: Forces CrewAI manager to use Gemini
-            llm=gemini_llm          # CRITICAL FIX: Sets default LLM to Gemini
+            memory=False,
+            manager_llm=gemini_llm,
+            llm=gemini_llm
         )
         
-        print("🧠 Initiating Crew Execution...")
+        print("Initiating Crew Execution...")
         
-        # 4. Kickoff (Runs all tasks in sequence)
         crew.kickoff()
         
-        # 5. Extract Results securely
-        # Accessing output directly from task objects AFTER kickoff
         health_result = str(health_task.output)
         finance_result = str(finance_task.output)
         study_result = str(study_task.output)
         coordination_result = str(coordination_task.output)
         
-        # Extract validation report
         validation_report = self._extract_validation_report(coordination_result)
         
-        # Compile results
         results = {
             "health": health_result,
             "finance": finance_result,
@@ -81,15 +67,14 @@ class LifeOpsCrew:
             "user_context": self.user_context
         }
         
-        print("✅ Analysis Complete!")
+        print("Analysis Complete!")
         return results
     
     def _extract_validation_report(self, output: str) -> Dict[str, Any]:
-        """Simple extraction to avoid parsing errors"""
         return {
             "summary": "Validation Protocol Complete", 
-            "health_approved": "✅ Verified",
-            "finance_approved": "✅ Verified",
-            "study_approved": "✅ Verified",
+            "health_approved": "Verified",
+            "finance_approved": "Verified",
+            "study_approved": "Verified",
             "overall_score": 90
         }

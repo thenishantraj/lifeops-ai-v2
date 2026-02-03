@@ -20,30 +20,45 @@ class LifeOpsCrew:
         
         print("🚀 Starting LifeOps AI v2 Analysis with Validation Protocol...")
         
-        # Create individual tasks
+        # 1. Create individual domain tasks
         health_task = self.tasks.create_health_analysis_task()
         finance_task = self.tasks.create_finance_analysis_task()
         study_task = self.tasks.create_study_analysis_task()
         
-        # Execute individual domain tasks
-        print("🧠 Analyzing Health Domain...")
-        health_result = health_task.execute()
+        # 2. Create coordination task (Passing previous tasks as context)
+        # Note: We pass the LIST of task objects, not strings.
+        coordination_task = self.tasks.create_life_coordination_task([health_task, finance_task, study_task])
         
-        print("💰 Analyzing Finance Domain...")
-        finance_result = finance_task.execute()
-        
-        print("📚 Analyzing Study Domain...")
-        study_result = study_task.execute()
-        
-        # Create and execute coordination task with validation
-        coordination_task = self.tasks.create_life_coordination_task(
-            health_result,
-            finance_result,
-            study_result
+        # 3. Create the Crew with ALL tasks
+        crew = Crew(
+            agents=[
+                health_task.agent, 
+                finance_task.agent, 
+                study_task.agent, 
+                coordination_task.agent
+            ],
+            tasks=[
+                health_task, 
+                finance_task, 
+                study_task, 
+                coordination_task
+            ],
+            process=Process.sequential,
+            verbose=True
         )
         
-        print("🔄 Coordinating Life Domains with Gemini Validation...")
-        coordination_result = coordination_task.execute()
+        print("🧠🤖💰 Initiating Crew Execution (Analyzing Health, Finance, Study & Coordinating)...")
+        
+        # 4. Kickoff the entire crew
+        # The final result returned by kickoff is typically the output of the last task
+        crew_output = crew.kickoff()
+        
+        # 5. Extract results from individual task objects
+        # CrewAI populates .output.raw on the task objects after execution
+        health_result = str(health_task.output)
+        finance_result = str(finance_task.output)
+        study_result = str(study_task.output)
+        coordination_result = str(coordination_task.output)
         
         # Extract validation report
         validation_report = self._extract_validation_report(coordination_result)

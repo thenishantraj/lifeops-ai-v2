@@ -7,6 +7,7 @@ import sys
 from datetime import datetime, timedelta
 import json
 import time
+import pandas as pd
 
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

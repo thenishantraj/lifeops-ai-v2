@@ -109,7 +109,7 @@ graph TD
 
     subgraph Logic [AI & Orchestration Layer]
         B[CrewAI Framework]
-        C[Gemini AI Backend]
+        C[lifeopsAI Backend]
         A <--> B
         B <--> C
     end

@@ -766,33 +766,35 @@ def main():
                 )
 
     def _extract_action_items_from_results(self, results):
-        """Extract action items from AI results and add to database"""
-        # Simple keyword-based extraction
-        keywords = ["action item", "task:", "todo:", "do this", "implement", "schedule"]
+        """Extract action items from AI results and add to database using enhanced utility"""
+        from utils import extract_action_items  # Import the utility function
         
         all_text = ""
+        # Combine results from all analyzed domains
         for key in ['health', 'finance', 'study', 'coordination']:
             if key in results:
                 all_text += results[key] + " "
         
-        lines = all_text.split('.')
-        for line in lines:
-            line_lower = line.lower()
-            if any(keyword in line_lower for keyword in keywords):
-                # Extract category
-                category = "General"
-                if "health" in line_lower:
-                    category = "Health"
-                elif "finance" in line_lower or "budget" in line_lower:
-                    category = "Finance"
-                elif "study" in line_lower or "learn" in line_lower:
-                    category = "Study"
-                
-                # Clean the task text
-                task = line.strip()
-                if len(task) > 10:  # Only add meaningful tasks
-                    db.add_action_item(task[:200], category, "AI Agent")
+        # Use the regex-based utility to get a clean list of actions
+        actions = extract_action_items(all_text)
         
+        for action in actions:
+            # Enhanced category detection logic
+            category = "General"
+            action_lower = action.lower()
+            
+            if any(word in action_lower for word in ["health", "exercise", "sleep", "medicine"]):
+                category = "Health"
+            elif any(word in action_lower for word in ["finance", "budget", "money", "spend"]):
+                category = "Finance"
+            elif any(word in action_lower for word in ["study", "learn", "exam", "assignment"]):
+                category = "Study"
+            
+            # Clean and add the task to the database
+            if len(action) > 10:  # Safety check for meaningful content
+                db.add_action_item(action[:200], category, "AI Agent")
+        
+        # Refresh the UI state with the newly added items
         st.session_state.todo_items = db.get_pending_actions()
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ Crew setup v2 with Gemini Validation Protocol
 File: crew_setup.py
 """
 import os
-# 1. Force environment to ignore OpenAI defaults
+# 1. Force environment settings
 os.environ["OPENAI_API_KEY"] = "NA"
 os.environ["OPENAI_MODEL_NAME"] = "gemini-1.5-flash"
 
@@ -18,9 +18,7 @@ class LifeOpsCrew:
     
     def __init__(self, user_context: Dict[str, Any]):
         self.user_context = user_context
-        # Initialize Agents FIRST to access the configured LLM
         self.agents = LifeOpsAgents()
-        # Initialize Tasks
         self.tasks = LifeOpsTasks(user_context)
     
     def kickoff(self) -> Dict[str, Any]:
@@ -33,14 +31,13 @@ class LifeOpsCrew:
         finance_task = self.tasks.create_finance_analysis_task()
         study_task = self.tasks.create_study_analysis_task()
         
-        # 2. Create Coordination Task with Context
+        # 2. Create Coordination Task
         coordination_task = self.tasks.create_life_coordination_task([health_task, finance_task, study_task])
         
-        # 3. Get the Gemini LLM object directly
+        # 3. Get Gemini LLM
         gemini_llm = self.agents.llm
         
-        # 4. Create Crew with Strict Gemini Enforcement
-        # We explicitly set manager_llm and function_calling_llm to prevent OpenAI defaults
+        # 4. Create Crew
         crew = Crew(
             agents=[
                 health_task.agent, 
@@ -56,37 +53,33 @@ class LifeOpsCrew:
             ],
             process=Process.sequential,
             verbose=True,
-            memory=False, # Disable memory to prevent OpenAI embedding calls
-            # Fix: Provide dummy embedder config to stop OpenAI lookups
+            memory=False, # Important: Keep memory False
+            # FIX: Correct Provider Name used here
             embedder={
-                "provider": "google",
+                "provider": "google-generativeai", # <-- YAHAN CHANGE KIYA HAI (google -> google-generativeai)
                 "config": {
                     "model": "models/embedding-001",
                     "task_type": "retrieval_document",
                     "title": "Embeddings",
                 }
             },
-            manager_llm=gemini_llm,        # CRITICAL: Force Manager to use Gemini
-            function_calling_llm=gemini_llm # CRITICAL: Force Tool calling to use Gemini
+            manager_llm=gemini_llm,
+            function_calling_llm=gemini_llm
         )
         
         print("🧠 Initiating Crew Execution...")
         
         try:
-            # 5. Kickoff
             crew.kickoff()
             
-            # 6. Extract Results securely
-            # Check for different output formats (string vs object)
+            # Extract Results
             health_result = str(health_task.output)
             finance_result = str(finance_task.output)
             study_result = str(study_task.output)
             coordination_result = str(coordination_task.output)
             
-            # Extract validation report
             validation_report = self._extract_validation_report(coordination_result)
             
-            # Compile results
             results = {
                 "health": health_result,
                 "finance": finance_result,
@@ -102,7 +95,6 @@ class LifeOpsCrew:
 
         except Exception as e:
             print(f"❌ Error Detail: {str(e)}")
-            # Return detailed error instead of generic message to help debugging
             return {
                 "health": f"Error: {str(e)}",
                 "finance": "Error",
@@ -113,7 +105,6 @@ class LifeOpsCrew:
             }
     
     def _extract_validation_report(self, output: str) -> Dict[str, Any]:
-        """Simple extraction to avoid parsing errors"""
         return {
             "summary": "Validation Protocol Complete", 
             "health_approved": "✅ Verified",

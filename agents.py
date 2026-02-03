@@ -1,101 +1,92 @@
 """
-LifeOps AI Agents using CrewAI
+LifeOps AI v2 - Fixed Agents file
 """
 import os
-from typing import List, Optional
+from typing import List
 from crewai import Agent
+from crewai.tools import tool 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
-# Load environment variables
 load_dotenv()
 
+# Tools in Global Scope
+@tool("schedule_action_item")
+def schedule_action_item(task: str, category: str, priority: str = "medium"):
+    """Schedule an action item in the system."""
+    return f"Scheduled: {task} ({category})"
+
+@tool("set_reminder")
+def set_reminder(message: str, hours_from_now: int = 24):
+    """Set a reminder for future."""
+    return f"Reminder set: {message}"
+
+@tool("validate_cross_domain")
+def validate_cross_domain(domain: str, recommendation: str, context: dict):
+    """Validate recommendations."""
+    return "Validated"
+
+# --- AGENTS CLASS ---
+
 class LifeOpsAgents:
-    """Container for all LifeOps AI agents"""
-    
     def __init__(self):
+        # Initialize Gemini LLM
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-pro",
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
-        
-    def create_health_agent(self) -> Agent:
-        """Create the Health & Wellness Agent"""
+    
+    def _create_agent(self, role, goal, backstory, tools=None, allow_delegation=False):
+        """Helper method to create agents with consistent configuration"""
+        if tools is None:
+            tools = []
+            
         return Agent(
-            role="Health and Wellness Expert",
-            goal="""Optimize user's physical and mental health through balanced routines,
-                  stress management, sleep optimization, and nutrition advice.""",
-            backstory="""You are Dr. Maya Patel, a holistic health expert with 15 years of 
-                       experience in preventive medicine and stress management. You combine 
-                       Eastern wellness traditions with Western medical science to create 
-                       sustainable health routines. You believe that optimal health is the 
-                       foundation for all life success.""",
+            role=role,
+            goal=goal,
+            backstory=backstory,
             verbose=True,
-            allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10
+            allow_delegation=allow_delegation,
+            llm=self.llm,  # Explicitly use Gemini LLM
+            tools=tools
+        )
+
+    def create_health_agent(self) -> Agent:
+        return self._create_agent(
+            role="Health and Wellness Expert",
+            goal="Optimize health and wellness through personalized recommendations",
+            backstory="Dr. Maya Patel, a holistic health specialist with 15 years of experience integrating modern medicine with wellness practices.",
+            tools=[schedule_action_item, set_reminder]
         )
     
     def create_finance_agent(self) -> Agent:
-        """Create the Personal Finance Agent"""
-        return Agent(
+        return self._create_agent(
             role="Personal Finance Advisor",
-            goal="""Help users manage their finances effectively, create budgets, 
-                  optimize expenses, and build savings while maintaining quality of life.""",
-            backstory="""You are Alex Chen, a certified financial planner who specializes 
-                       in helping professionals balance ambition with financial stability. 
-                       You've helped hundreds of clients achieve financial independence 
-                       through smart budgeting and investment strategies. You believe money 
-                       should enable life goals, not control them.""",
-            verbose=True,
-            allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10
+            goal="Manage finances effectively and build wealth",
+            backstory="Alex Chen, a CFA with expertise in personal finance, budgeting, and investment strategies for millennials.",
+            tools=[schedule_action_item]
         )
     
     def create_study_agent(self) -> Agent:
-        """Create the Learning & Productivity Agent"""
-        return Agent(
-            role="Learning and Productivity Specialist",
-            goal="""Design effective study schedules, optimize learning techniques, 
-                  manage time efficiently, and prevent burnout while achieving academic goals.""",
-            backstory="""You are Professor James Wilson, an educational psychologist 
-                       with expertise in cognitive science and time management. You've 
-                       published research on optimal learning intervals and helped 
-                       thousands of students achieve academic success without burnout. 
-                       You believe smart work always beats hard work.""",
-            verbose=True,
-            allow_delegation=False,
-            llm=self.llm,
-            max_iter=3,
-            max_rpm=10
+        return self._create_agent(
+            role="Learning Specialist",
+            goal="Optimize study habits and academic performance",
+            backstory="Prof. James Wilson, a cognitive scientist specializing in learning techniques, memory retention, and exam preparation strategies.",
+            tools=[schedule_action_item, set_reminder]
         )
     
     def create_life_coordinator(self) -> Agent:
-        """Create the Master Life Coordinator Agent"""
-        return Agent(
-            role="Life Operations Coordinator",
-            goal="""Orchestrate all life domains (health, finance, study) to create 
-                  a balanced, sustainable lifestyle. Make trade-off decisions when 
-                  conflicts arise between domains.""",
-            backstory="""You are Sophia Williams, a renowned life strategist who 
-                       integrates multiple life domains into cohesive strategies. 
-                       With degrees in psychology, business, and education, you 
-                       understand how different life areas interact. Your specialty 
-                       is making tough decisions that optimize for long-term happiness 
-                       and success.""",
-            verbose=True,
-            allow_delegation=True,
-            llm=self.llm,
-            max_iter=5,
-            max_rpm=15
+        return self._create_agent(
+            role="Life Coordinator",
+            goal="Orchestrate life domains for optimal balance and productivity",
+            backstory="Sophia Williams, a former project manager turned life coach who specializes in integrating health, finance, and study goals.",
+            tools=[validate_cross_domain, schedule_action_item],
+            allow_delegation=True
         )
-    
+
     def get_all_agents(self) -> List[Agent]:
-        """Get all agents as a list"""
         return [
             self.create_health_agent(),
             self.create_finance_agent(),

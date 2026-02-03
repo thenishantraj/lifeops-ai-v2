@@ -6,5 +6,6 @@ google-generativeai
 plotly
 pandas
 langchain
-pydantic
-streamlit-option-menu
+sqlalchemy
+streamlit-autorefresh
+markdown

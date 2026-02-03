@@ -6,6 +6,8 @@ from agents import LifeOpsAgents
 from tasks import LifeOpsTasks
 from typing import Dict, Any
 import json
+import os
+os.environ["OPENAI_API_KEY"] = "NA"
 
 class LifeOpsCrew:
     """Main crew orchestrator for LifeOps AI v2"""

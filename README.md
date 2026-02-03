@@ -345,41 +345,6 @@ GET /api/progress       # Overall progress
 - CSV/JSON data export
 - Webhook support for custom triggers
 
----
-
-## 📁 Project Structure
-
-```
-lifeops-ai/
-├── app.py                 # Main Streamlit application
-├── requirements.txt       # Python dependencies
-├── .env.example          # Environment template
-├── README.md             # This file
-├── assets/               # Images and static files
-├── agents/               # AI agent modules
-│   ├── health_agent.py
-│   ├── finance_agent.py
-│   ├── study_agent.py
-│   └── coordinator.py
-├── database/             # Database management
-│   ├── models.py
-│   ├── schemas.py
-│   └── operations.py
-├── utils/                # Utility functions
-│   ├── helpers.py
-│   ├── validators.py
-│   └── formatters.py
-├── dashboard/            # Dashboard components
-│   ├── widgets.py
-│   ├── charts.py
-│   └── layouts.py
-└── tests/                # Test files
-    ├── test_agents.py
-    ├── test_database.py
-    └── test_ui.py
-```
-
----
 
 ## 🧪 Testing
 
@@ -446,7 +411,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **GitHub Profile**: [@thenishantraj](https://github.com/thenishantraj)
 - **Project Link**: [LifeOps AI v2 Repo](https://github.com/thenishantraj/lifeops-ai-v2)
 - **Issues**: [Report a Bug](https://github.com/thenishantraj/lifeops-ai-v2/issues)
-- **Twitter**: @LifeOpsAI
 
 <div align="center">
   

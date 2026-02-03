@@ -1,69 +1,101 @@
 """
-LifeOps AI v2 - Fixed Agents (No Tools Version to fix OpenAI Error)
+LifeOps AI Agents using CrewAI
 """
 import os
-from typing import List
+from typing import List, Optional
 from crewai import Agent
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
 
 class LifeOpsAgents:
+    """Container for all LifeOps AI agents"""
+    
     def __init__(self):
-        # Gemini Model Configuration
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-1.5-flash",
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
-
+        
     def create_health_agent(self) -> Agent:
+        """Create the Health & Wellness Agent"""
         return Agent(
             role="Health and Wellness Expert",
-            goal="Provide actionable health advice and medicine management strategies.",
-            backstory="Dr. Maya Patel, a holistic health expert who focuses on stress management, sleep optimization, and practical medicine adherence.",
+            goal="""Optimize user's physical and mental health through balanced routines,
+                  stress management, sleep optimization, and nutrition advice.""",
+            backstory="""You are Dr. Maya Patel, a holistic health expert with 15 years of 
+                       experience in preventive medicine and stress management. You combine 
+                       Eastern wellness traditions with Western medical science to create 
+                       sustainable health routines. You believe that optimal health is the 
+                       foundation for all life success.""",
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            # Tools removed to prevent OpenAI embedding crashes
-            tools=[] 
+            max_iter=3,
+            max_rpm=10
         )
     
     def create_finance_agent(self) -> Agent:
+        """Create the Personal Finance Agent"""
         return Agent(
             role="Personal Finance Advisor",
-            goal="Create practical budgets and bill payment strategies.",
-            backstory="Alex Chen, a pragmatic financial planner who specializes in student budgets, expense tracking, and savings optimization.",
+            goal="""Help users manage their finances effectively, create budgets, 
+                  optimize expenses, and build savings while maintaining quality of life.""",
+            backstory="""You are Alex Chen, a certified financial planner who specializes 
+                       in helping professionals balance ambition with financial stability. 
+                       You've helped hundreds of clients achieve financial independence 
+                       through smart budgeting and investment strategies. You believe money 
+                       should enable life goals, not control them.""",
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            max_iter=3,
+            max_rpm=10
         )
     
     def create_study_agent(self) -> Agent:
+        """Create the Learning & Productivity Agent"""
         return Agent(
-            role="Learning Specialist",
-            goal="Optimize study schedules and focus techniques.",
-            backstory="Prof. James Wilson, an expert in cognitive science and productivity, known for Pomodoro techniques and exam preparation strategies.",
+            role="Learning and Productivity Specialist",
+            goal="""Design effective study schedules, optimize learning techniques, 
+                  manage time efficiently, and prevent burnout while achieving academic goals.""",
+            backstory="""You are Professor James Wilson, an educational psychologist 
+                       with expertise in cognitive science and time management. You've 
+                       published research on optimal learning intervals and helped 
+                       thousands of students achieve academic success without burnout. 
+                       You believe smart work always beats hard work.""",
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            tools=[]
+            max_iter=3,
+            max_rpm=10
         )
     
     def create_life_coordinator(self) -> Agent:
+        """Create the Master Life Coordinator Agent"""
         return Agent(
-            role="Life Coordinator",
-            goal="Integrate advice from all domains into a unified plan.",
-            backstory="Sophia Williams, a master strategist who resolves conflicts between health, finance, and study goals to create a balanced lifestyle.",
+            role="Life Operations Coordinator",
+            goal="""Orchestrate all life domains (health, finance, study) to create 
+                  a balanced, sustainable lifestyle. Make trade-off decisions when 
+                  conflicts arise between domains.""",
+            backstory="""You are Sophia Williams, a renowned life strategist who 
+                       integrates multiple life domains into cohesive strategies. 
+                       With degrees in psychology, business, and education, you 
+                       understand how different life areas interact. Your specialty 
+                       is making tough decisions that optimize for long-term happiness 
+                       and success.""",
             verbose=True,
-            allow_delegation=False, # Manual coordination handles this
+            allow_delegation=True,
             llm=self.llm,
-            tools=[]
+            max_iter=5,
+            max_rpm=15
         )
-
+    
     def get_all_agents(self) -> List[Agent]:
+        """Get all agents as a list"""
         return [
             self.create_health_agent(),
             self.create_finance_agent(),

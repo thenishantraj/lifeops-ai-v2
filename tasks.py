@@ -2,7 +2,7 @@
 LifeOps AI v2 - Enhanced Tasks for CrewAI
 """
 from crewai import Task
-from typing import Dict, Any
+from typing import Dict, Any, List
 from agents import LifeOpsAgents
 from datetime import datetime
 import json
@@ -126,7 +126,8 @@ class LifeOpsTasks:
             """
         )
     
-    def create_life_coordination_task(self, health_output: str, finance_output: str, study_output: str) -> Task:
+    # CHANGE IS HERE: Updated signature to accept context tasks instead of strings
+    def create_life_coordination_task(self, context_tasks: List[Task]) -> Task:
         """Master task v2 with Gemini Validation Protocol"""
         coordinator = self.agents.create_life_coordinator()
         
@@ -138,25 +139,17 @@ class LifeOpsTasks:
             
             User's Primary Problem: {self.user_context.get('problem', 'General life optimization')}
             
-            Domain Insights to Validate:
-            
-            HEALTH ANALYSIS:
-            {health_output}
-            
-            FINANCE ANALYSIS:
-            {finance_output}
-            
-            STUDY ANALYSIS:
-            {study_output}
+            You have received detailed analysis from Health, Finance, and Study agents in your context.
             
             Your Coordination Protocol:
-            1. VALIDATE each domain output using the validation tool
-            2. Identify conflicts between validated recommendations
-            3. Make trade-off decisions with evidence
-            4. Create unified schedule with time blocking
-            5. Generate Priority Matrix (Urgent/Important)
-            6. Schedule action items for key tasks
-            7. Provide validation report summary
+            1. READ and ANALYZE the context provided by previous tasks.
+            2. VALIDATE each domain output using the validation tool.
+            3. Identify conflicts between validated recommendations (e.g., Study time vs Sleep time).
+            4. Make trade-off decisions with evidence.
+            5. Create unified schedule with time blocking.
+            6. Generate Priority Matrix (Urgent/Important).
+            7. Schedule action items for key tasks.
+            8. Provide validation report summary.
             
             Your output MUST include:
             - Validation report from Gemini Validation Protocol
@@ -174,7 +167,7 @@ class LifeOpsTasks:
             6. Scheduled Action Items
             7. Success Metrics & Validation Scores
             """,
-            context=[health_output, finance_output, study_output]
+            context=context_tasks # CrewAI handles passing the previous outputs here
         )
     
     def create_weekly_reflection_task(self, week_data: Dict[str, Any]) -> Task:

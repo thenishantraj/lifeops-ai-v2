@@ -794,5 +794,7 @@ def main():
             if len(action) > 10:  # Safety check for meaningful content
                 db.add_action_item(action[:200], category, "AI Agent")
         
-        # Refresh the UI state with the newly added items
         st.session_state.todo_items = db.get_pending_actions()
+
+if __name__ == "__main__":
+    main()

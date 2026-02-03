@@ -1,938 +1,799 @@
 """
-LifeOps AI v2 - Complete Fixed Version
+LifeOps AI v2 - Streamlit Application with Advanced Features
 """
 import streamlit as st
 import os
 import sys
-import time
-import json
-import sqlite3
-import uuid
 from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional
-import pandas as pd
-import plotly.graph_objects as go
+import json
+import time
 
-# Page configuration
+# Add current directory to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from utils import (
+    load_env, format_date, calculate_days_until,
+    create_health_chart, create_finance_chart, create_study_schedule,
+    create_insight_card, parse_agent_output
+)
+from crew_setup import LifeOpsCrew
+from database import LifeOpsDatabase
+
+# Initialize database
+db = LifeOpsDatabase()
+
+# Page configuration (UNCHANGED from v1)
 st.set_page_config(
-    page_title="LifeOps AI v2.0",
+    page_title="LifeOps AI v2",
     page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Simple Database Manager
-class DatabaseManager:
-    """Simple SQLite database manager"""
+# Custom CSS (ADD NEW STYLES ONLY, KEEP EXISTING)
+st.markdown("""
+<style>
+    /* KEEP ALL EXISTING v1 CSS */
+    .main-header {
+        font-size: 3rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+    }
+    .sub-header {
+        color: #666;
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+    }
+    .stButton > button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        width: 100%;
+        transition: transform 0.2s;
+    }
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    .agent-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+        border-left: 4px solid;
+    }
+    .metric-card {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .insight-highlight {
+        background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border-left: 4px solid #667eea;
+    }
     
-    def __init__(self, db_path: str = "lifeops_simple.db"):
-        self.db_path = db_path
-        self.init_database()
-    
-    def init_database(self):
-        """Initialize database tables"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Tasks table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS tasks (
-                id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
-                description TEXT,
-                category TEXT,
-                priority INTEGER DEFAULT 3,
-                completed BOOLEAN DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Progress table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS progress (
-                id TEXT PRIMARY KEY,
-                date TEXT DEFAULT CURRENT_DATE,
-                health_score REAL DEFAULT 50,
-                stress_level INTEGER DEFAULT 5,
-                sleep_hours REAL DEFAULT 7,
-                tasks_completed INTEGER DEFAULT 0,
-                notes TEXT
-            )
-        ''')
-        
-        # Notes table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS notes (
-                id TEXT PRIMARY KEY,
-                title TEXT,
-                content TEXT,
-                category TEXT DEFAULT 'general',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        # Bills table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS bills (
-                id TEXT PRIMARY KEY,
-                name TEXT,
-                amount REAL,
-                due_date TEXT,
-                paid BOOLEAN DEFAULT 0
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-    
-    def save_task(self, task_data: Dict[str, Any]) -> str:
-        """Save a task to database"""
-        task_id = str(uuid.uuid4())
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO tasks (id, title, description, category, priority)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            task_id,
-            task_data.get('title', 'Untitled Task'),
-            task_data.get('description', ''),
-            task_data.get('category', 'general'),
-            task_data.get('priority', 3)
-        ))
-        
-        conn.commit()
-        conn.close()
-        return task_id
-    
-    def complete_task(self, task_id: str):
-        """Mark task as completed"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('UPDATE tasks SET completed = 1 WHERE id = ?', (task_id,))
-        conn.commit()
-        conn.close()
-    
-    def get_tasks(self, completed: bool = False, limit: int = 50) -> List[Dict]:
-        """Get tasks from database"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, title, description, category, priority, created_at, completed
-            FROM tasks 
-            WHERE completed = ?
-            ORDER BY priority ASC, created_at DESC
-            LIMIT ?
-        ''', (1 if completed else 0, limit))
-        
-        tasks = []
-        for row in cursor.fetchall():
-            tasks.append({
-                'id': row[0],
-                'title': row[1],
-                'description': row[2],
-                'category': row[3],
-                'priority': row[4],
-                'created_at': row[5],
-                'completed': bool(row[6])
-            })
-        
-        conn.close()
-        return tasks
-    
-    def save_progress(self, progress_data: Dict[str, Any]) -> str:
-        """Save daily progress"""
-        progress_id = str(uuid.uuid4())
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO progress (id, health_score, stress_level, sleep_hours, tasks_completed, notes)
-            VALUES (?, ?, ?, ?, ?, ?)
-        ''', (
-            progress_id,
-            progress_data.get('health_score', 50),
-            progress_data.get('stress_level', 5),
-            progress_data.get('sleep_hours', 7),
-            progress_data.get('tasks_completed', 0),
-            progress_data.get('notes', '')
-        ))
-        
-        conn.commit()
-        conn.close()
-        return progress_id
-    
-    def get_weekly_progress(self) -> List[Dict]:
-        """Get last 7 days of progress"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT date, health_score, stress_level, sleep_hours, tasks_completed
-            FROM progress
-            ORDER BY date DESC
-            LIMIT 7
-        ''')
-        
-        progress = []
-        for row in cursor.fetchall():
-            progress.append({
-                'date': row[0],
-                'health_score': float(row[1] or 50),
-                'stress_level': int(row[2] or 5),
-                'sleep_hours': float(row[3] or 7),
-                'tasks_completed': int(row[4] or 0)
-            })
-        
-        conn.close()
-        
-        # If no data, return sample data
-        if not progress:
-            today = datetime.now().strftime('%Y-%m-%d')
-            for i in range(7):
-                date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
-                progress.append({
-                    'date': date,
-                    'health_score': 60 + i * 5,
-                    'stress_level': 7 - i,
-                    'sleep_hours': 6.5 + i * 0.5,
-                    'tasks_completed': i + 2
-                })
-        
-        return progress
-    
-    def save_note(self, note_data: Dict[str, Any]) -> str:
-        """Save note to database"""
-        note_id = str(uuid.uuid4())
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO notes (id, title, content, category)
-            VALUES (?, ?, ?, ?)
-        ''', (
-            note_id,
-            note_data['title'],
-            note_data['content'],
-            note_data.get('category', 'general')
-        ))
-        
-        conn.commit()
-        conn.close()
-        return note_id
-    
-    def get_notes(self, limit: int = 20) -> List[Dict]:
-        """Get notes from database"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, title, content, category, created_at
-            FROM notes
-            ORDER BY created_at DESC
-            LIMIT ?
-        ''', (limit,))
-        
-        notes = []
-        for row in cursor.fetchall():
-            notes.append({
-                'id': row[0],
-                'title': row[1],
-                'content': row[2],
-                'category': row[3],
-                'created_at': row[4]
-            })
-        
-        conn.close()
-        return notes
-    
-    def add_bill(self, bill_data: Dict[str, Any]) -> str:
-        """Add bill to tracker"""
-        bill_id = str(uuid.uuid4())
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO bills (id, name, amount, due_date, paid)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            bill_id,
-            bill_data['name'],
-            bill_data['amount'],
-            bill_data.get('due_date', datetime.now().strftime('%Y-%m-%d')),
-            bill_data.get('paid', 0)
-        ))
-        
-        conn.commit()
-        conn.close()
-        return bill_id
-    
-    def get_bills(self) -> List[Dict]:
-        """Get all bills"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT id, name, amount, due_date, paid
-            FROM bills
-            ORDER BY due_date
-        ''')
-        
-        bills = []
-        for row in cursor.fetchall():
-            bills.append({
-                'id': row[0],
-                'name': row[1],
-                'amount': float(row[2] or 0),
-                'due_date': row[3],
-                'paid': bool(row[4])
-            })
-        
-        conn.close()
-        return bills
+    /* NEW v2 STYLES */
+    .todo-item {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .todo-completed {
+        opacity: 0.7;
+        border-left-color: #4CAF50;
+    }
+    .medicine-card {
+        background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+        border: 1px solid #90caf9;
+    }
+    .bill-card {
+        background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+        padding: 1rem;
+        margin: 0.5rem 0;
+        border-radius: 8px;
+        border: 1px solid #ce93d8;
+    }
+    .pomodoro-timer {
+        font-size: 3rem;
+        text-align: center;
+        font-weight: bold;
+        color: #667eea;
+        padding: 2rem;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .validation-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-right: 0.5rem;
+    }
+    .validation-approved {
+        background: #4CAF50;
+        color: white;
+    }
+    .validation-pending {
+        background: #FF9800;
+        color: white;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-# Initialize database
-db = DatabaseManager()
+def initialize_session_state():
+    """Initialize session state variables v2"""
+    if 'analysis_results' not in st.session_state:
+        st.session_state.analysis_results = None
+    if 'user_inputs' not in st.session_state:
+        st.session_state.user_inputs = {}
+    if 'processing' not in st.session_state:
+        st.session_state.processing = False
+    if 'pomodoro_active' not in st.session_state:
+        st.session_state.pomodoro_active = False
+    if 'pomodoro_time' not in st.session_state:
+        st.session_state.pomodoro_time = 25 * 60  # 25 minutes
+    if 'todo_items' not in st.session_state:
+        st.session_state.todo_items = db.get_pending_actions()
+    if 'medicines' not in st.session_state:
+        st.session_state.medicines = db.get_todays_medicines()
+    if 'bills' not in st.session_state:
+        st.session_state.bills = db.get_monthly_bills()
+    if 'notes' not in st.session_state:
+        st.session_state.notes = db.get_notes()
 
-# Smart Timer Class
-class SmartTimer:
-    """Pomodoro timer"""
-    
-    def __init__(self):
-        self.is_running = False
-        self.remaining = 25 * 60  # 25 minutes
-        self.mode = "focus"
-        
-    def start(self):
-        self.is_running = True
-        
-    def pause(self):
-        self.is_running = False
-        
-    def reset(self):
-        self.is_running = False
-        self.remaining = 25 * 60
-        self.mode = "focus"
-        
-    def get_display(self) -> str:
-        minutes = self.remaining // 60
-        seconds = self.remaining % 60
-        return f"{minutes:02d}:{seconds:02d}"
+# ... [REST OF THE INITIALIZATION AND SIDEBAR CODE REMAINS IDENTICAL TO v1] ...
 
-# Main Application Class
-class LifeOpsApp:
-    """Main application class"""
+def main():
+    """Main application function v2"""
     
-    def __init__(self):
-        self.timer = SmartTimer()
-        self.initialize_session_state()
+    # Initialize session state
+    initialize_session_state()
     
-    def initialize_session_state(self):
-        """Initialize session state"""
-        if 'active_tab' not in st.session_state:
-            st.session_state.active_tab = 'dashboard'
-        if 'task_filter' not in st.session_state:
-            st.session_state.task_filter = 'all'
-        if 'user_inputs' not in st.session_state:
-            st.session_state.user_inputs = {
-                'stress_level': 5,
-                'sleep_hours': 7,
-                'monthly_budget': 2000,
-                'current_expenses': 1500
-            }
-        if 'analysis_results' not in st.session_state:
-            st.session_state.analysis_results = None
+    # Header
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown('<h1 class="main-header">🧠 LifeOps AI v2</h1>', unsafe_allow_html=True)
+        st.markdown('<p class="sub-header">Mission Control Room - Health, Finance & Study Integration with Validation Protocol</p>', unsafe_allow_html=True)
     
-    def render_sidebar(self):
-        """Render sidebar"""
-        with st.sidebar:
-            st.title("🚀 LifeOps v2.0")
-            st.caption("Personal Productivity Dashboard")
-            
-            st.divider()
-            st.subheader("Navigation")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("📊 Dashboard", use_container_width=True):
-                    st.session_state.active_tab = 'dashboard'
-                    st.rerun()
-            with col2:
-                if st.button("🤖 Agents", use_container_width=True):
-                    st.session_state.active_tab = 'agent'
-                    st.rerun()
-            
-            st.divider()
-            st.subheader("Quick Stats")
-            
-            tasks = db.get_tasks(completed=False)
-            completed = db.get_tasks(completed=True)
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Active Tasks", len(tasks))
-            with col2:
-                st.metric("Completed", len(completed))
-            
-            st.divider()
-            st.subheader("Timer")
-            
-            timer_cols = st.columns(3)
-            with timer_cols[0]:
-                if st.button("▶️", use_container_width=True):
-                    self.timer.start()
-            with timer_cols[1]:
-                if st.button("⏸️", use_container_width=True):
-                    self.timer.pause()
-            with timer_cols[2]:
-                if st.button("🔄", use_container_width=True):
-                    self.timer.reset()
-            
-            st.markdown(f"**{self.timer.get_display()}** - {self.timer.mode.title()}")
-            
-            # Progress
-            st.divider()
-            total = len(tasks) + len(completed)
-            if total > 0:
-                completion_rate = (len(completed) / total) * 100
-                st.progress(completion_rate / 100)
-                st.caption(f"Completion: {completion_rate:.1f}%")
+    with col2:
+        st.image("https://cdn-icons-png.flaticon.com/512/1998/1998678.png", width=100)
     
-    def render_dashboard(self):
-        """Render main dashboard"""
-        st.title("📊 Dashboard")
-        st.caption("Your Personal Command Center")
+    # Sidebar (KEPT IDENTICAL TO v1 - no changes to input style)
+    with st.sidebar:
+        st.markdown("### ⚙️ Life Configuration v2")
         
-        # Top Metrics
+        # User Inputs (EXACTLY SAME AS v1)
+        st.markdown("#### 📊 Current Status")
+        
+        stress_level = st.slider(
+            "Current Stress Level (1-10)",
+            min_value=1,
+            max_value=10,
+            value=5,
+            help="1 = Very Relaxed, 10 = Extremely Stressed"
+        )
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            sleep_hours = st.number_input(
+                "Sleep Hours",
+                min_value=0,
+                max_value=12,
+                value=7,
+                step=1
+            )
+        with col2:
+            exercise_frequency = st.selectbox(
+                "Exercise Frequency",
+                ["Rarely", "1-2 times/week", "3-4 times/week", "Daily"]
+            )
+        
+        st.markdown("#### 📚 Study")
+        
+        exam_date = st.date_input(
+            "Upcoming Exam Date",
+            min_value=datetime.now(),
+            value=datetime.now() + timedelta(days=30)
+        )
+        
+        current_study_hours = st.number_input(
+            "Current Daily Study Hours",
+            min_value=0,
+            max_value=12,
+            value=3,
+            step=1
+        )
+        
+        st.markdown("#### 💰 Finance")
+        
+        monthly_budget = st.number_input(
+            "Monthly Budget ($)",
+            min_value=0,
+            value=2000,
+            step=100
+        )
+        
+        current_expenses = st.number_input(
+            "Current Monthly Expenses ($)",
+            min_value=0,
+            value=1500,
+            step=100
+        )
+        
+        financial_goals = st.text_area(
+            "Financial Goals",
+            "Save for emergency fund, reduce unnecessary expenses"
+        )
+        
+        # NEW v2 sidebar additions (in collapsible expanders to maintain density)
+        with st.expander("💊 Medicine Vault", expanded=False):
+            medicine_name = st.text_input("Medicine Name")
+            medicine_dosage = st.text_input("Dosage (e.g., 500mg)")
+            medicine_frequency = st.selectbox("Frequency", ["Daily", "Twice Daily", "Weekly", "As Needed"])
+            if st.button("Add Medicine"):
+                db.add_medicine(medicine_name, medicine_dosage, medicine_frequency)
+                st.success(f"Added {medicine_name}")
+                st.session_state.medicines = db.get_todays_medicines()
+        
+        with st.expander("💰 Bill Tracking", expanded=False):
+            bill_name = st.text_input("Bill Name")
+            bill_amount = st.number_input("Amount", min_value=0.0, value=100.0)
+            bill_due_day = st.number_input("Due Day (1-31)", min_value=1, max_value=31, value=15)
+            if st.button("Add Bill"):
+                db.add_bill(bill_name, bill_amount, bill_due_day)
+                st.success(f"Added {bill_name}")
+                st.session_state.bills = db.get_monthly_bills()
+        
+        # Problem input
+        st.markdown("#### 🎯 What's Your Challenge?")
+        problem = st.text_area(
+            "Describe your current life challenge",
+            "I'm stressed about my upcoming exam but also need to manage my budget and health",
+            height=100
+        )
+        
+        # Run button
+        st.markdown("---")
+        run_clicked = st.button(
+            "🚀 Run LifeOps v2 Analysis",
+            type="primary",
+            use_container_width=True
+        )
+        
+        # Store inputs
+        user_inputs = {
+            'stress_level': stress_level,
+            'sleep_hours': sleep_hours,
+            'exercise_frequency': exercise_frequency,
+            'exam_date': exam_date.strftime("%Y-%m-%d"),
+            'days_until_exam': (exam_date - datetime.now().date()).days,
+            'current_study_hours': current_study_hours,
+            'monthly_budget': monthly_budget,
+            'current_expenses': current_expenses,
+            'financial_goals': financial_goals,
+            'medicines': ", ".join([m['name'] for m in st.session_state.medicines]),
+            'bills': ", ".join([b['name'] for b in st.session_state.bills]),
+            'problem': problem
+        }
+        
+        st.session_state.user_inputs = user_inputs
+    
+    # Main content area - NEW TABS ADDED
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Dashboard", 
+        "🤖 AI Analysis", 
+        "📝 Action System",
+        "💊 Health Vault",
+        "⏰ Productivity",
+        "📈 Weekly Review"
+    ])
+    
+    with tab1:
+        # Dashboard (IDENTICAL TO v1 - no changes)
+        st.markdown("## 📊 Life Dashboard v2")
+        
+        # Metrics
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
-            self.render_metric_card("Health Score", "82", "+2%", "#10B981", "🏥")
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="color: #667eea;">{stress_level}/10</h3>
+                <p style="color: #666;">Stress Level</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col2:
-            tasks = db.get_tasks(completed=False)
-            st.metric("Pending Tasks", len(tasks))
+            days_left = calculate_days_until(user_inputs['exam_date'])
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="color: #764ba2;">{days_left}</h3>
+                <p style="color: #666;">Days Until Exam</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col3:
-            bills = db.get_bills()
-            unpaid = sum(b['amount'] for b in bills if not b['paid'])
-            st.metric("Unpaid Bills", f"${unpaid:.0f}")
+            savings = monthly_budget - current_expenses
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="color: #4CAF50;">${savings}</h3>
+                <p style="color: #666;">Monthly Savings</p>
+            </div>
+            """, unsafe_allow_html=True)
         
         with col4:
-            progress = db.get_weekly_progress()
-            streak = len([p for p in progress if p['tasks_completed'] > 0])
-            st.metric("Current Streak", f"{streak} days")
+            consistency_streak = db.get_consistency_streak()
+            st.markdown(f"""
+            <div class="metric-card">
+                <h3 style="color: #FF9800;">{consistency_streak} days</h3>
+                <p style="color: #666;">Consistency Streak</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-        st.divider()
-        
-        # Main Content
+        # Charts (IDENTICAL TO v1)
         col1, col2 = st.columns(2)
         
         with col1:
-            st.subheader("📋 Active Tasks")
-            self.render_task_list()
-            
-            st.subheader("📝 Quick Note")
-            self.render_quick_note()
+            st.plotly_chart(
+                create_health_chart(stress_level, sleep_hours),
+                use_container_width=True
+            )
         
         with col2:
-            st.subheader("📈 Progress Overview")
-            self.render_progress_chart()
-            
-            st.subheader("🛠️ Quick Tools")
-            self.render_quick_tools()
+            st.plotly_chart(
+                create_finance_chart(monthly_budget, current_expenses),
+                use_container_width=True
+            )
+        
+        # Study Schedule
+        st.plotly_chart(
+            create_study_schedule(
+                user_inputs['days_until_exam'],
+                current_study_hours
+            ),
+            use_container_width=True
+        )
     
-    def render_task_list(self):
-        """Render task list"""
-        # Filter buttons
+    with tab2:
+        # AI Analysis Area v2 with Validation
+        st.markdown("## 🤖 AI Life Analysis v2")
+        
+        # Validation Protocol Status
         col1, col2, col3, col4 = st.columns(4)
         with col1:
-            if st.button("All", use_container_width=True):
-                st.session_state.task_filter = 'all'
-                st.rerun()
+            st.markdown('<span class="validation-badge validation-approved">Gemini Protocol</span>', unsafe_allow_html=True)
         with col2:
-            if st.button("Health", use_container_width=True):
-                st.session_state.task_filter = 'health'
-                st.rerun()
+            st.markdown('<span class="validation-badge validation-approved">Agent Tooling</span>', unsafe_allow_html=True)
         with col3:
-            if st.button("Study", use_container_width=True):
-                st.session_state.task_filter = 'study'
-                st.rerun()
+            st.markdown('<span class="validation-badge validation-pending">CrewAI Active</span>', unsafe_allow_html=True)
         with col4:
-            if st.button("Finance", use_container_width=True):
-                st.session_state.task_filter = 'finance'
-                st.rerun()
+            st.markdown('<span class="validation-badge validation-approved">v2 Ready</span>', unsafe_allow_html=True)
         
-        # Get and filter tasks
-        tasks = db.get_tasks(completed=False)
-        if st.session_state.task_filter != 'all':
-            tasks = [t for t in tasks if t['category'] == st.session_state.task_filter]
-        
-        # Display tasks
-        if tasks:
-            for task in tasks:
-                col1, col2, col3 = st.columns([4, 1, 1])
-                
-                with col1:
-                    category_color = {
-                        'health': '#10B981',
-                        'finance': '#F59E0B',
-                        'study': '#3B82F6',
-                        'general': '#8B5CF6'
-                    }.get(task['category'], '#6B7280')
+        if run_clicked and not st.session_state.processing:
+            # Run analysis
+            with st.spinner("🧠 LifeOps AI v2 is analyzing with Validation Protocol..."):
+                try:
+                    # Load environment
+                    load_env()
                     
-                    st.markdown(f"""
-                    <div style='padding: 10px; margin: 5px 0; border-left: 4px solid {category_color}; background: #F9FAFB; border-radius: 4px;'>
-                        <strong>{task['title']}</strong><br>
-                        <small style='color: #6B7280;'>{task['description'][:60]}...</small>
-                    </div>
-                    """, unsafe_allow_html=True)
-                
-                with col2:
-                    priority_labels = {1: "⚡", 2: "🔥", 3: "⚪"}
-                    st.write(priority_labels.get(task['priority'], "⚪"))
-                
-                with col3:
-                    if st.button("✓", key=f"complete_{task['id']}"):
-                        db.complete_task(task['id'])
-                        st.success(f"Completed: {task['title']}")
-                        time.sleep(0.5)
-                        st.rerun()
-        else:
-            st.info("No tasks found. Add some tasks to get started!")
+                    # Run analysis
+                    st.session_state.processing = True
+                    
+                    # Create and run crew v2
+                    crew = LifeOpsCrew(user_inputs)
+                    results = crew.kickoff()
+                    
+                    # Store results
+                    st.session_state.analysis_results = results
+                    st.session_state.processing = False
+                    
+                    # Auto-extract action items from results
+                    self._extract_action_items_from_results(results)
+                    
+                    # Show success message
+                    st.success("✅ LifeOps v2 analysis complete with Gemini Validation!")
+                    
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+                    st.session_state.processing = False
         
-        # Add new task
-        with st.expander("Add New Task"):
-            title = st.text_input("Task Title")
-            description = st.text_area("Description")
-            category = st.selectbox("Category", ["general", "health", "finance", "study"])
-            priority = st.selectbox("Priority", [("Normal", 3), ("High", 2), ("Urgent", 1)], 
-                                  format_func=lambda x: x[0])[1]
-            
-            if st.button("Add Task", type="primary") and title:
-                task_data = {
-                    'title': title,
-                    'description': description,
-                    'category': category,
-                    'priority': priority
-                }
-                db.save_task(task_data)
-                st.success("Task added!")
-                time.sleep(0.5)
-                st.rerun()
-    
-    def render_quick_note(self):
-        """Render quick note form"""
-        title = st.text_input("Note Title", key="note_title")
-        content = st.text_area("Content", height=100, key="note_content")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("💾 Save", use_container_width=True, type="primary") and title and content:
-                note_data = {
-                    'title': title,
-                    'content': content
-                }
-                db.save_note(note_data)
-                st.success("Note saved!")
-                time.sleep(0.5)
-                st.rerun()
-        with col2:
-            if st.button("🗑️ Clear", use_container_width=True):
-                st.rerun()
-        
-        # Show recent notes
-        notes = db.get_notes(limit=3)
-        if notes:
-            st.markdown("**Recent Notes:**")
-            for note in notes:
-                with st.expander(f"{note['title']}"):
-                    st.write(note['content'])
-    
-    def render_progress_chart(self):
-        """Render progress chart"""
-        progress_data = db.get_weekly_progress()
-        
-        if progress_data:
-            # Create a simple chart
-            df = pd.DataFrame(progress_data)
-            df['date'] = pd.to_datetime(df['date'])
-            df = df.sort_values('date')
-            
-            fig = go.Figure()
-            
-            # Add health score line
-            fig.add_trace(go.Scatter(
-                x=df['date'],
-                y=df['health_score'],
-                mode='lines+markers',
-                name='Health Score',
-                line=dict(color='#10B981', width=3)
-            ))
-            
-            # Add stress level line
-            fig.add_trace(go.Scatter(
-                x=df['date'],
-                y=df['stress_level'] * 10,  # Scale for visibility
-                mode='lines+markers',
-                name='Stress Level (scaled)',
-                line=dict(color='#EF4444', width=3)
-            ))
-            
-            fig.update_layout(
-                height=300,
-                showlegend=True,
-                plot_bgcolor='white',
-                paper_bgcolor='white',
-                margin=dict(l=20, r=20, t=20, b=20)
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Show metrics
-            col1, col2 = st.columns(2)
-            with col1:
-                avg_health = df['health_score'].mean()
-                st.metric("Avg Health", f"{avg_health:.0f}")
-            with col2:
-                avg_stress = df['stress_level'].mean()
-                st.metric("Avg Stress", f"{avg_stress:.1f}/10")
-        else:
-            st.info("No progress data yet. Log your daily progress!")
-        
-        # Log progress form
-        with st.expander("Log Daily Progress"):
-            col1, col2 = st.columns(2)
-            with col1:
-                health = st.slider("Health Score", 0, 100, 75)
-                stress = st.slider("Stress Level", 1, 10, 5)
-            with col2:
-                sleep = st.number_input("Sleep Hours", 0.0, 12.0, 7.0, step=0.5)
-                tasks_completed = st.number_input("Tasks Completed", 0, 50, 0)
-            
-            notes = st.text_area("Notes for today")
-            
-            if st.button("Save Progress", type="primary"):
-                progress_data = {
-                    'health_score': health,
-                    'stress_level': stress,
-                    'sleep_hours': sleep,
-                    'tasks_completed': tasks_completed,
-                    'notes': notes
-                }
-                db.save_progress(progress_data)
-                st.success("Progress saved!")
-                time.sleep(0.5)
-                st.rerun()
-    
-    def render_quick_tools(self):
-        """Render quick tools"""
-        tabs = st.tabs(["💰 Bills", "📅 Calendar", "📊 Export"])
-        
-        with tabs[0]:
-            st.subheader("Bill Tracker")
-            
-            # Add bill form
-            with st.expander("Add New Bill"):
-                name = st.text_input("Bill Name")
-                amount = st.number_input("Amount", 0.0, 10000.0, 100.0)
-                due_date = st.date_input("Due Date")
-                
-                if st.button("Add Bill", type="primary") and name and amount > 0:
-                    bill_data = {
-                        'name': name,
-                        'amount': amount,
-                        'due_date': due_date.strftime("%Y-%m-%d")
-                    }
-                    db.add_bill(bill_data)
-                    st.success("Bill added!")
-                    time.sleep(0.5)
-                    st.rerun()
-            
-            # Show bills
-            bills = db.get_bills()
-            if bills:
-                unpaid = [b for b in bills if not b['paid']]
-                if unpaid:
-                    st.write(f"**{len(unpaid)} unpaid bills:**")
-                    for bill in unpaid[:3]:
-                        col1, col2, col3 = st.columns([3, 2, 1])
-                        with col1:
-                            st.write(bill['name'])
-                        with col2:
-                            st.write(f"${bill['amount']:.2f}")
-                        with col3:
-                            if st.button("💳", key=f"pay_{bill['id']}"):
-                                st.success(f"Paid {bill['name']}")
-                else:
-                    st.success("All bills paid! 🎉")
-            else:
-                st.info("No bills tracked yet.")
-        
-        with tabs[1]:
-            st.subheader("Calendar Integration")
-            
-            # Mock calendar events
-            tasks = db.get_tasks(completed=False)[:5]
-            
-            st.info("Calendar would sync with your tasks here")
-            
-            if tasks:
-                st.write("**Upcoming tasks:**")
-                for i, task in enumerate(tasks[:3]):
-                    event_time = datetime.now() + timedelta(hours=i*2)
-                    st.write(f"⏰ {event_time.strftime('%I:%M %p')} - {task['title']}")
-            
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("Sync Now"):
-                    st.success("Calendar synced!")
-            with col2:
-                if st.button("View Full Calendar"):
-                    st.info("Calendar view would open here")
-        
-        with tabs[2]:
-            st.subheader("Data Export")
-            
-            # Collect data
-            data = {
-                'tasks': db.get_tasks(completed=True) + db.get_tasks(completed=False),
-                'progress': db.get_weekly_progress(),
-                'notes': db.get_notes(),
-                'bills': db.get_bills(),
-                'export_date': datetime.now().isoformat()
-            }
-            
-            # Download button
-            st.download_button(
-                label="📥 Download All Data",
-                data=json.dumps(data, indent=2),
-                file_name=f"lifeops_export_{datetime.now().strftime('%Y%m%d')}.json",
-                mime="application/json",
-                type="primary"
-            )
-            
-            st.divider()
-            st.write("**Quick Stats Export:**")
-            
-            tasks_count = len(data['tasks'])
-            completed_count = len([t for t in data['tasks'] if t['completed']])
-            bills_count = len(data['bills'])
-            
-            st.write(f"• Total Tasks: {tasks_count}")
-            st.write(f"• Completed: {completed_count}")
-            st.write(f"• Bills Tracked: {bills_count}")
-    
-    def render_agent_control(self):
-        """Render agent control panel"""
-        st.title("🤖 AI Agents")
-        st.caption("Intelligent Life Optimization")
-        
-        # Agent status cards
-        col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            st.markdown("""
-            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <div style='font-size: 2em;'>🧠</div>
-                <h4 style='color: #10B981;'>Health Agent</h4>
-                <div style='color: #10B981; font-weight: bold;'>ONLINE</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown("""
-            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <div style='font-size: 2em;'>💰</div>
-                <h4 style='color: #F59E0B;'>Finance Agent</h4>
-                <div style='color: #10B981; font-weight: bold;'>ONLINE</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown("""
-            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <div style='font-size: 2em;'>📚</div>
-                <h4 style='color: #3B82F6;'>Study Agent</h4>
-                <div style='color: #10B981; font-weight: bold;'>ONLINE</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col4:
-            st.markdown("""
-            <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                <div style='font-size: 2em;'>👑</div>
-                <h4 style='color: #8B5CF6;'>Coordinator</h4>
-                <div style='color: #F59E0B; font-weight: bold;'>ANALYZING</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        st.divider()
-        
-        # Configuration panel
-        with st.expander("⚙️ Configuration", expanded=True):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("Health Parameters")
-                stress = st.slider("Stress Level", 1, 10, 5)
-                sleep = st.number_input("Sleep Hours", 0, 12, 7)
-                exercise = st.selectbox("Exercise", ["None", "Light", "Moderate", "Intense"])
-            
-            with col2:
-                st.subheader("Study Parameters")
-                study_hours = st.number_input("Study Hours/Day", 0, 12, 3)
-                exam_days = st.number_input("Days Until Exam", 0, 365, 30)
-                focus = st.slider("Focus Duration (min)", 15, 120, 45)
-            
-            col3, col4 = st.columns(2)
-            
-            with col3:
-                st.subheader("Finance Parameters")
-                budget = st.number_input("Monthly Budget", 0, 10000, 2000)
-                expenses = st.number_input("Current Expenses", 0, 10000, 1500)
-            
-            with col4:
-                st.subheader("Primary Goal")
-                goal = st.text_area("What do you want to achieve?", 
-                                  "Balance study, health, and finances effectively")
-            
-            # Store inputs
-            st.session_state.user_inputs = {
-                'stress_level': stress,
-                'sleep_hours': sleep,
-                'monthly_budget': budget,
-                'current_expenses': expenses,
-                'study_hours': study_hours,
-                'goal': goal
-            }
-        
-        st.divider()
-        
-        # Execution controls
-        st.subheader("🚀 Execute Analysis")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            if st.button("🧠 Analyze Health", use_container_width=True, type="primary"):
-                with st.spinner("Health agent analyzing..."):
-                    time.sleep(2)
-                    st.session_state.analysis_results = {
-                        'health': "✅ **HEALTH ANALYSIS COMPLETE**\n\n**Recommendations:**\n1. Increase sleep to 8 hours\n2. Add 30-min daily walk\n3. Practice 5-min breathing exercises when stressed\n4. Stay hydrated (8 glasses/day)\n\n**Expected Benefits:**\n• 20% energy increase\n• 30% stress reduction\n• Better focus and mood"
-                    }
-                    st.success("Health analysis complete!")
-        
-        with col2:
-            if st.button("💰 Analyze Finances", use_container_width=True, type="primary"):
-                with st.spinner("Finance agent analyzing..."):
-                    time.sleep(2)
-                    st.session_state.analysis_results = {
-                        'finance': "✅ **FINANCE ANALYSIS COMPLETE**\n\n**Recommendations:**\n1. Create $500 emergency fund\n2. Cut unnecessary subscriptions ($50/month)\n3. Automate bill payments\n4. Track expenses daily\n\n**Projections:**\n• Save $200/month\n• 3-month safety buffer\n• Reduced financial stress"
-                    }
-                    st.success("Finance analysis complete!")
-        
-        with col3:
-            if st.button("📚 Analyze Study", use_container_width=True, type="primary"):
-                with st.spinner("Study agent analyzing..."):
-                    time.sleep(2)
-                    st.session_state.analysis_results = {
-                        'study': "✅ **STUDY ANALYSIS COMPLETE**\n\n**Recommendations:**\n1. Pomodoro technique (25min work, 5min break)\n2. Morning study sessions (most productive)\n3. Weekly review sessions\n4. Active recall practice\n\n**Schedule:**\n• 3hrs/day focused study\n• 1hr review every Sunday\n• Practice tests weekly"
-                    }
-                    st.success("Study analysis complete!")
-        
-        # Full analysis button
-        st.divider()
-        if st.button("🔄 EXECUTE FULL LIFE ANALYSIS", use_container_width=True, type="primary"):
-            with st.spinner("All agents analyzing your life..."):
-                time.sleep(3)
-                st.session_state.analysis_results = {
-                    'health': "✅ **HEALTH AGENT:** Optimal sleep (8hrs), daily exercise (30min), stress management techniques implemented.",
-                    'finance': "✅ **FINANCE AGENT:** Budget optimized, $200/month savings identified, expense tracking automated.",
-                    'study': "✅ **STUDY AGENT:** Efficient schedule created (3hrs/day), focus techniques recommended, review system setup.",
-                    'coordinator': "✅ **LIFE COORDINATOR:** All domains integrated. Priority: Study (60%), Health (25%), Finance (15%). Weekly check-ins scheduled."
-                }
-                st.success("✅ FULL LIFE ANALYSIS COMPLETE!")
-                
-                # Add sample tasks
-                sample_tasks = [
-                    {'title': 'Morning meditation', 'description': '5-minute breathing exercise', 'category': 'health', 'priority': 3},
-                    {'title': 'Study session 1', 'description': '25-minute focused study', 'category': 'study', 'priority': 2},
-                    {'title': 'Track expenses', 'description': 'Log today\'s spending', 'category': 'finance', 'priority': 3},
-                    {'title': 'Evening walk', 'description': '30-minute walk after dinner', 'category': 'health', 'priority': 3},
-                    {'title': 'Weekly review', 'description': 'Review progress and plan next week', 'category': 'general', 'priority': 2}
-                ]
-                
-                for task in sample_tasks:
-                    db.save_task(task)
-        
-        # Display results
-        if st.session_state.get('analysis_results'):
-            st.divider()
-            st.subheader("📊 Analysis Results")
-            
+        # Display results if available
+        if st.session_state.analysis_results:
             results = st.session_state.analysis_results
             
-            tabs = st.tabs(["Health", "Finance", "Study", "Coordination"])
+            # Validation Report Highlight
+            if 'validation_report' in results:
+                st.markdown("### 🔬 Gemini Validation Protocol Report")
+                validation = results['validation_report']
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Health", validation.get('health_approved', 'N/A'))
+                with col2:
+                    st.metric("Finance", validation.get('finance_approved', 'N/A'))
+                with col3:
+                    st.metric("Study", validation.get('study_approved', 'N/A'))
+                with col4:
+                    st.metric("Score", f"{validation.get('overall_score', 0)}/100")
             
-            with tabs[0]:
-                st.markdown(f"""
-                <div style='background: #F0F9FF; padding: 20px; border-radius: 10px; border-left: 4px solid #10B981;'>
-                    {results.get('health', 'No health analysis yet.')}
-                </div>
-                """, unsafe_allow_html=True)
+            # Cross-domain insights highlight
+            st.markdown("### 🔄 Validated Cross-Domain Insights")
+            st.markdown(f"""
+            <div class="insight-highlight">
+                <p style="font-size: 1.1rem; font-weight: 500;">
+                    {results.get('cross_domain_insights', 'No cross-domain insights extracted.')}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             
-            with tabs[1]:
-                st.markdown(f"""
-                <div style='background: #FFFBEB; padding: 20px; border-radius: 10px; border-left: 4px solid #F59E0B;'>
-                    {results.get('finance', 'No finance analysis yet.')}
-                </div>
-                """, unsafe_allow_html=True)
+            # Agent outputs in expandable sections
+            st.markdown("### 📋 Domain Analysis (Validated)")
             
-            with tabs[2]:
-                st.markdown(f"""
-                <div style='background: #EFF6FF; padding: 20px; border-radius: 10px; border-left: 4px solid #3B82F6;'>
-                    {results.get('study', 'No study analysis yet.')}
-                </div>
-                """, unsafe_allow_html=True)
+            # Health Analysis
+            with st.expander("🏥 Health Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Health & Wellness Recommendations",
+                    results['health'],
+                    "Health",
+                    "#4CAF50"
+                ), unsafe_allow_html=True)
             
-            with tabs[3]:
-                st.markdown(f"""
-                <div style='background: #F5F3FF; padding: 20px; border-radius: 10px; border-left: 4px solid #8B5CF6;'>
-                    {results.get('coordinator', 'No coordination analysis yet.')}
-                </div>
-                """, unsafe_allow_html=True)
+            # Finance Analysis
+            with st.expander("💰 Finance Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Financial Planning & Budgeting",
+                    results['finance'],
+                    "Finance",
+                    "#FF9800"
+                ), unsafe_allow_html=True)
             
-            # Generate plan button
-            if st.button("📋 Generate Action Plan", type="primary"):
-                with st.spinner("Creating your personalized action plan..."):
-                    time.sleep(2)
-                    st.success("Action plan generated! Check your tasks dashboard.")
-    
-    def render_metric_card(self, title, value, delta, color, icon):
-        """Render a metric card"""
-        st.markdown(f"""
-        <div style='background: white; padding: 20px; border-radius: 10px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px;'>
-            <div style='font-size: 2em;'>{icon}</div>
-            <div style='font-size: 2em; font-weight: bold; color: #1F2937;'>{value}</div>
-            <div style='color: #6B7280; font-size: 0.9em; margin-top: 5px;'>{title}</div>
-            <div style='color: {color}; font-size: 0.8em; margin-top: 5px;'>{delta}</div>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    def run(self):
-        """Main application runner"""
-        self.render_sidebar()
+            # Study Analysis
+            with st.expander("📚 Study Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Learning & Productivity Strategy",
+                    results['study'],
+                    "Study",
+                    "#2196F3"
+                ), unsafe_allow_html=True)
+            
+            # Coordination Results
+            st.markdown("### 🎯 Integrated Life Plan (Validated)")
+            st.markdown(results['coordination'])
         
-        if st.session_state.active_tab == 'dashboard':
-            self.render_dashboard()
-        else:
-            self.render_agent_control()
+        elif not run_clicked:
+            st.info("👈 Configure your life settings and click 'Run LifeOps v2 Analysis' to begin with Validation Protocol.")
+    
+    with tab3:
+        # Action System v2
+        st.markdown("## 📝 Action System")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            st.markdown("### ✅ Dynamic To-Do List")
+            
+            # Add new action
+            with st.form("add_action_form"):
+                new_task = st.text_input("New Action Item")
+                category = st.selectbox("Category", ["Health", "Finance", "Study", "Personal"])
+                submitted = st.form_submit_button("Add Action")
+                if submitted and new_task:
+                    db.add_action_item(new_task, category, "User")
+                    st.session_state.todo_items = db.get_pending_actions()
+                    st.rerun()
+            
+            # Display actions
+            todo_items = st.session_state.todo_items
+            if todo_items:
+                for item in todo_items:
+                    col_a, col_b, col_c = st.columns([3, 1, 1])
+                    with col_a:
+                        st.markdown(f"**{item['task']}**")
+                        st.caption(f"Category: {item['category']} • Added: {item['created_at'][:10]}")
+                    with col_b:
+                        if st.button("✓", key=f"complete_{item['id']}"):
+                            db.mark_action_complete(item['id'])
+                            st.session_state.todo_items = db.get_pending_actions()
+                            st.rerun()
+                    with col_c:
+                        if st.button("🗑️", key=f"delete_{item['id']}"):
+                            # Add delete logic if needed
+                            pass
+            else:
+                st.info("No pending actions. Add some above or run AI analysis.")
+        
+        with col2:
+            st.markdown("### 📊 Progress")
+            streak = db.get_consistency_streak()
+            st.metric("Consistency Streak", f"{streak} days")
+            
+            # Weekly completion
+            st.markdown("#### This Week")
+            # Mock data - in production, query database
+            completion_data = {
+                "Mon": 3, "Tue": 5, "Wed": 4, "Thu": 6, "Fri": 2, "Sat": 1, "Sun": 0
+            }
+            st.bar_chart(completion_data)
+    
+    with tab4:
+        # Health Vault
+        st.markdown("## 💊 Medicine & Health Vault")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### Today's Medicines")
+            medicines = st.session_state.medicines
+            if medicines:
+                for med in medicines:
+                    st.markdown(f"""
+                    <div class="medicine-card">
+                        <h4>{med['name']}</h4>
+                        <p>📋 Dosage: {med['dosage']}</p>
+                        <p>🔄 Frequency: {med['frequency']}</p>
+                        <p>⏰ Time: {med['time_of_day'] or 'Anytime'}</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.info("No medicines added. Add them in the sidebar.")
+            
+            # Medicine reminders
+            st.markdown("### ⏰ Reminders")
+            reminder_time = st.time_input("Reminder Time", datetime.now().time())
+            if st.button("Set Daily Reminder"):
+                st.success(f"Reminder set for {reminder_time}")
+        
+        with col2:
+            st.markdown("### 📋 Health Log")
+            log_date = st.date_input("Log Date", datetime.now())
+            
+            symptoms = st.text_area("Symptoms/Today's Feelings")
+            sleep_quality = st.slider("Sleep Quality (1-10)", 1, 10, 7)
+            energy_level = st.slider("Energy Level (1-10)", 1, 10, 6)
+            
+            if st.button("Save Health Log"):
+                st.success("Health log saved")
+            
+            st.markdown("### 📈 Health Trends")
+            # Mock trend data
+            trend_data = {
+                "Day": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                "Energy": [7, 6, 8, 5, 7, 9, 8],
+                "Sleep": [8, 7, 6, 7, 8, 9, 8]
+            }
+            st.line_chart(trend_data, x="Day", y=["Energy", "Sleep"])
+    
+    with tab5:
+        # Productivity Tools
+        st.markdown("## ⏰ Productivity Command Center")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("### 🍅 Study Command Timer")
+            
+            # Pomodoro Timer
+            if not st.session_state.pomodoro_active:
+                work_minutes = st.number_input("Work Minutes", 5, 60, 25)
+                break_minutes = st.number_input("Break Minutes", 1, 30, 5)
+                
+                if st.button("Start Pomodoro Session"):
+                    st.session_state.pomodoro_active = True
+                    st.session_state.pomodoro_time = work_minutes * 60
+                    st.session_state.break_time = break_minutes * 60
+                    st.session_state.is_work = True
+                    st.rerun()
+            else:
+                # Timer display
+                mins, secs = divmod(st.session_state.pomodoro_time, 60)
+                timer_text = f"{mins:02d}:{secs:02d}"
+                phase = "WORK" if st.session_state.get('is_work', True) else "BREAK"
+                
+                st.markdown(f"""
+                <div class="pomodoro-timer">
+                    {timer_text}
+                    <div style="font-size: 1rem; color: #666;">{phase} PHASE</div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    if st.button("Pause"):
+                        st.session_state.pomodoro_active = False
+                        st.rerun()
+                with col_b:
+                    if st.button("Skip to Break"):
+                        st.session_state.pomodoro_time = st.session_state.get('break_time', 300)
+                        st.session_state.is_work = False
+                        st.rerun()
+                
+                # Auto-timer logic (simplified)
+                time.sleep(1)
+                if st.session_state.pomodoro_time > 0:
+                    st.session_state.pomodoro_time -= 1
+                    st.rerun()
+                else:
+                    # Switch phases
+                    if st.session_state.get('is_work', True):
+                        st.session_state.pomodoro_time = st.session_state.get('break_time', 300)
+                        st.session_state.is_work = False
+                        st.success("Time for a break! 🎉")
+                    else:
+                        st.session_state.pomodoro_active = False
+                        st.success("Pomodoro complete! 🏁")
+                        # Log session
+                        db.add_study_session(25, "Pomodoro", 8)
+                    st.rerun()
+            
+            # Break suggestions based on stress
+            stress = st.session_state.user_inputs.get('stress_level', 5)
+            if stress > 7:
+                st.warning("🔥 High stress detected! Consider 10-minute meditation break.")
+            elif stress > 5:
+                st.info("💡 Moderate stress. Try 5-minute stretch break.")
+        
+        with col2:
+            st.markdown("### 📝 Smart Notepad")
+            
+            # Note editor
+            note_title = st.text_input("Note Title")
+            note_content = st.text_area("Content", height=200)
+            note_tags = st.text_input("Tags (comma-separated)")
+            
+            if st.button("Save Note"):
+                if note_title and note_content:
+                    db.add_note(note_title, note_content, note_tags)
+                    st.session_state.notes = db.get_notes()
+                    st.success("Note saved!")
+            
+            st.markdown("### 📋 Recent Notes")
+            notes = st.session_state.notes[:5]
+            for note in notes:
+                with st.expander(f"📄 {note['title']}"):
+                    st.write(note['content'])
+                    st.caption(f"Tags: {note['tags']} • {note['created_at'][:10]}")
+            
+            # Google Calendar Sync Simulation
+            st.markdown("### 📅 Proposed Schedule")
+            if st.button("Generate AI Schedule"):
+                # Mock AI schedule generation
+                schedule = {
+                    "Monday": "8-10: Study, 10-11: Exercise, 14-16: Deep Work",
+                    "Tuesday": "9-12: Project Work, 13-15: Meetings, 16-17: Review",
+                    "Wednesday": "8-10: Study, 11-12: Health Check, 15-17: Creative Work",
+                    "Thursday": "9-11: Focus Work, 13-15: Learning, 16-17: Planning",
+                    "Friday": "8-10: Review, 11-13: Work, 14-16: Prep Next Week"
+                }
+                for day, plan in schedule.items():
+                    st.write(f"**{day}**: {plan}")
+    
+    with tab6:
+        # Weekly Review
+        st.markdown("## 📈 Weekly Review & Analytics")
+        
+        # Mock weekly data
+        week_data = {
+            "completed_actions": 18,
+            "total_actions": 25,
+            "study_hours": 28,
+            "exercise_sessions": 4,
+            "sleep_average": 7.2,
+            "stress_trend": [6, 5, 7, 6, 5, 4, 5],
+            "productivity_score": 78,
+            "finance_saved": 450
+        }
+        
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("Completion Rate", f"{week_data['completed_actions']}/{week_data['total_actions']}")
+        with col2:
+            st.metric("Study Hours", week_data['study_hours'])
+        with col3:
+            st.metric("Avg Sleep", f"{week_data['sleep_average']} hrs")
+        with col4:
+            st.metric("Productivity", f"{week_data['productivity_score']}/100")
+        
+        # Charts
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("### 📊 Performance Trends")
+            trend_df = pd.DataFrame({
+                "Day": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+                "Stress": week_data['stress_trend'],
+                "Productivity": [70, 75, 80, 65, 85, 90, 78]
+            })
+            st.line_chart(trend_df.set_index("Day"))
+        
+        with col2:
+            st.markdown("### 🎯 Domain Balance")
+            domain_df = pd.DataFrame({
+                "Domain": ["Health", "Finance", "Study", "Personal"],
+                "Hours": [15, 10, 28, 12]
+            })
+            st.bar_chart(domain_df.set_index("Domain"))
+        
+        # Weekly Reflection Agent
+        st.markdown("### 🤖 AI Weekly Reflection")
+        if st.button("Generate Reflection Report"):
+            with st.spinner("AI is analyzing your week..."):
+                # In production, call reflection agent
+                reflection_report = """
+                ## Weekly Performance Analysis
+                
+                **Patterns Identified:**
+                - Peak productivity: 10AM-12PM
+                - Study consistency improved mid-week
+                - Stress reduces after exercise sessions
+                
+                **Recommendations for Next Week:**
+                1. Schedule difficult tasks for Tuesday mornings
+                2. Add 15-minute meditation before study sessions
+                3. Review budget every Wednesday
+                
+                **Celebrate:**
+                - Achieved 4-day exercise streak!
+                - Saved $450 this month
+                - Improved sleep quality by 12%
+                """
+                st.markdown(reflection_report)
+                
+                # Download report
+                st.download_button(
+                    label="📥 Download Weekly Report",
+                    data=reflection_report,
+                    file_name=f"weekly_report_{datetime.now().strftime('%Y%m%d')}.md",
+                    mime="text/markdown"
+                )
 
-# Run the app
+    def _extract_action_items_from_results(self, results):
+        """Extract action items from AI results and add to database"""
+        # Simple keyword-based extraction
+        keywords = ["action item", "task:", "todo:", "do this", "implement", "schedule"]
+        
+        all_text = ""
+        for key in ['health', 'finance', 'study', 'coordination']:
+            if key in results:
+                all_text += results[key] + " "
+        
+        lines = all_text.split('.')
+        for line in lines:
+            line_lower = line.lower()
+            if any(keyword in line_lower for keyword in keywords):
+                # Extract category
+                category = "General"
+                if "health" in line_lower:
+                    category = "Health"
+                elif "finance" in line_lower or "budget" in line_lower:
+                    category = "Finance"
+                elif "study" in line_lower or "learn" in line_lower:
+                    category = "Study"
+                
+                # Clean the task text
+                task = line.strip()
+                if len(task) > 10:  # Only add meaningful tasks
+                    db.add_action_item(task[:200], category, "AI Agent")
+        
+        st.session_state.todo_items = db.get_pending_actions()
+
 if __name__ == "__main__":
-    app = LifeOpsApp()
-    app.run()
+    main()

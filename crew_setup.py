@@ -2,9 +2,6 @@
 Crew setup v2 with Gemini Validation Protocol
 File: crew_setup.py
 """
-import os
-# FIX 1: Bypass OpenAI requirement explicitly
-os.environ["OPENAI_API_KEY"] = "NA"
 
 from crewai import Crew, Process
 from agents import LifeOpsAgents

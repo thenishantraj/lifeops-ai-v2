@@ -1,4 +1,4 @@
-# 🚀 LifeOps AI v2.0
+#  LifeOps AI v2.0
 
 <div align="center">
 
@@ -21,7 +21,7 @@
 
 ---
 
-## 📖 Table of Contents
+##  Table of Contents
 - [🌟 Introduction](#-introduction)
 - [✨ Key Features](#-key-features)
 - [🏗️ System Architecture](#️-system-architecture)
@@ -42,11 +42,11 @@
 
 ---
 
-## 🌟 Introduction
+##  Introduction
 
 **LifeOps AI v2.0** is an advanced, AI-powered personal productivity and life optimization platform that transforms how individuals manage their health, finances, studies, and daily routines. Built with a cyberpunk aesthetic and powered by cutting-edge AI agents, LifeOps serves as your personal command center for holistic life management.
 
-### 🎯 The Problem
+###  The Problem
 Modern life is complex. We juggle multiple domains:
 - **Health & Wellness** (sleep, exercise, nutrition, stress)
 - **Finances** (budgeting, bills, savings, investments)

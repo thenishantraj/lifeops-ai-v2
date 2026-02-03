@@ -49,7 +49,7 @@ class LifeOpsAgents:
     
     def __init__(self):
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-pro",
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
@@ -162,5 +162,6 @@ class LifeOpsAgents:
             self.create_life_coordinator(),
             self.create_reflection_agent()
         ]
+
 
 

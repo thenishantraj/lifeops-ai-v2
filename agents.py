@@ -4,7 +4,7 @@ LifeOps AI v2 - Fixed Agents file
 import os
 from typing import List
 from crewai import Agent
-# 1. CHANGE: langchain की जगह crewai.tools का use करें
+
 from crewai.tools import tool 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 
 load_dotenv()
 
-# 2. CHANGE: Tools को क्लास से बाहर (Global Scope) में रखें
+
 @tool("schedule_action_item")
 def schedule_action_item(task: str, category: str, priority: str = "medium"):
     """Schedule an action item in the system."""
@@ -47,7 +47,7 @@ class LifeOpsAgents:
             verbose=True,
             allow_delegation=False,
             llm=self.llm,
-            # 4. CHANGE: Tools की लिस्ट में सीधे फंक्शन का नाम लिखें (self.tools नहीं)
+
             tools=[schedule_action_item, set_reminder]
         )
     
@@ -91,4 +91,5 @@ class LifeOpsAgents:
             self.create_study_agent(),
             self.create_life_coordinator()
         ]
+
 

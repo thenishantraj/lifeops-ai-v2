@@ -13,35 +13,36 @@ from datetime import datetime, timedelta
 # Load environment variables
 load_dotenv()
 
-class LifeOpsTools:
-    """Mock tools for agent tool calling"""
-    
-    @tool("schedule_action_item")
-    def schedule_action_item(task: str, category: str, priority: str = "medium"):
-        """Schedule an action item in the system"""
-        return f"Action item scheduled: {task} (Category: {category}, Priority: {priority})"
-    
-    @tool("set_reminder")
-    def set_reminder(message: str, hours_from_now: int = 24):
-        """Set a reminder for future"""
-        reminder_time = datetime.now() + timedelta(hours=hours_from_now)
-        return f"Reminder set for {reminder_time.strftime('%Y-%m-%d %H:%M')}: {message}"
-    
-    @tool("validate_cross_domain")
-    def validate_cross_domain(domain: str, recommendation: str, context: dict):
-        """Validate recommendations across domains for consistency"""
-        # Mock validation logic
-        validation_checks = {
-            "conflict_check": "No conflicts detected",
-            "resource_alignment": "Resources properly allocated",
-            "time_feasibility": "Time requirements feasible"
-        }
-        return json.dumps({
-            "domain": domain,
-            "recommendation": recommendation[:100],
-            "validation": validation_checks,
-            "status": "APPROVED"
-        })
+# --- TOOLS MOVED TO GLOBAL SCOPE TO FIX VALIDATION ERROR ---
+
+@tool("schedule_action_item")
+def schedule_action_item(task: str, category: str, priority: str = "medium"):
+    """Schedule an action item in the system"""
+    return f"Action item scheduled: {task} (Category: {category}, Priority: {priority})"
+
+@tool("set_reminder")
+def set_reminder(message: str, hours_from_now: int = 24):
+    """Set a reminder for future"""
+    reminder_time = datetime.now() + timedelta(hours=hours_from_now)
+    return f"Reminder set for {reminder_time.strftime('%Y-%m-%d %H:%M')}: {message}"
+
+@tool("validate_cross_domain")
+def validate_cross_domain(domain: str, recommendation: str, context: dict):
+    """Validate recommendations across domains for consistency"""
+    # Mock validation logic
+    validation_checks = {
+        "conflict_check": "No conflicts detected",
+        "resource_alignment": "Resources properly allocated",
+        "time_feasibility": "Time requirements feasible"
+    }
+    return json.dumps({
+        "domain": domain,
+        "recommendation": recommendation[:100],
+        "validation": validation_checks,
+        "status": "APPROVED"
+    })
+
+# --- AGENTS CLASS ---
 
 class LifeOpsAgents:
     """Container for all LifeOps AI v2 agents with CrewAI"""
@@ -52,7 +53,7 @@ class LifeOpsAgents:
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
-        self.tools = LifeOpsTools()
+        # Removed self.tools initialization as tools are now global
         
     def create_health_agent(self) -> Agent:
         """Create the Health & Wellness Agent v2"""
@@ -70,7 +71,7 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=4,
             max_rpm=15,
-            tools=[self.tools.schedule_action_item, self.tools.set_reminder]
+            tools=[schedule_action_item, set_reminder]
         )
     
     def create_finance_agent(self) -> Agent:
@@ -89,7 +90,7 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=4,
             max_rpm=15,
-            tools=[self.tools.schedule_action_item]
+            tools=[schedule_action_item]
         )
     
     def create_study_agent(self) -> Agent:
@@ -110,7 +111,7 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=4,
             max_rpm=15,
-            tools=[self.tools.schedule_action_item, self.tools.set_reminder]
+            tools=[schedule_action_item, set_reminder]
         )
     
     def create_life_coordinator(self) -> Agent:
@@ -132,7 +133,7 @@ class LifeOpsAgents:
             llm=self.llm,
             max_iter=6,
             max_rpm=20,
-            tools=[self.tools.validate_cross_domain, self.tools.schedule_action_item]
+            tools=[validate_cross_domain, schedule_action_item]
         )
     
     def create_reflection_agent(self) -> Agent:

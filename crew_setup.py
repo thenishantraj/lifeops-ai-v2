@@ -3,8 +3,7 @@ Crew setup v2 with Gemini Validation Protocol
 File: crew_setup.py
 """
 import os
-# 1. Hamne NA set kiya hai taaki CrewAI "Missing API Key" ka error na de,
-# lekin neeche hum Gemini set karenge taaki wo is NA key ko use na kare.
+# FIX 1: Bypass OpenAI requirement explicitly
 os.environ["OPENAI_API_KEY"] = "NA"
 
 from crewai import Crew, Process
@@ -18,7 +17,7 @@ class LifeOpsCrew:
     
     def __init__(self, user_context: Dict[str, Any]):
         self.user_context = user_context
-        # Agents instance create kar rahe hain taaki hum Gemini LLM object access kar sakein
+        # Initialize Agents first to access the configured LLM
         self.agents = LifeOpsAgents()
         self.tasks = LifeOpsTasks(user_context)
     
@@ -35,8 +34,8 @@ class LifeOpsCrew:
         # 2. Create Coordination Task with Context
         coordination_task = self.tasks.create_life_coordination_task([health_task, finance_task, study_task])
         
-        # 3. Create Crew (Fix: Pass Gemini LLM explicitly)
-        # Hum agents instance se configured Gemini LLM le rahe hain
+        # 3. Create Crew (Using all agents and tasks)
+        # FIX: Explicitly pass the Gemini LLM to the Crew to override OpenAI default
         gemini_llm = self.agents.llm
         
         crew = Crew(
@@ -54,9 +53,9 @@ class LifeOpsCrew:
             ],
             process=Process.sequential,
             verbose=True,
-            memory=False, # Memory False rakhna zaroori hai taaki OpenAI embeddings call na ho
-            manager_llm=gemini_llm, # <-- MAIN FIX: Manager ko Gemini use karne ke liye force karein
-            llm=gemini_llm # <-- MAIN FIX: Default LLM bhi Gemini set karein
+            memory=False,  # memory=False to prevent OpenAI embedding errors
+            manager_llm=gemini_llm, # CRITICAL FIX: Forces CrewAI manager to use Gemini
+            llm=gemini_llm          # CRITICAL FIX: Sets default LLM to Gemini
         )
         
         print("🧠 Initiating Crew Execution...")
@@ -65,6 +64,7 @@ class LifeOpsCrew:
         crew.kickoff()
         
         # 5. Extract Results securely
+        # Accessing output directly from task objects AFTER kickoff
         health_result = str(health_task.output)
         finance_result = str(finance_task.output)
         study_result = str(study_task.output)

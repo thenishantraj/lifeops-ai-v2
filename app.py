@@ -458,7 +458,7 @@ def main():
             
             # Validation Report Highlight
             if 'validation_report' in results:
-                st.markdown("### 🔬 Gemini Validation Protocol Report")
+                st.markdown("### 🔬 Validation Protocol Report")
                 validation = results['validation_report']
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:

@@ -3,7 +3,8 @@ Crew setup v2 with Gemini Validation Protocol
 File: crew_setup.py
 """
 import os
-# FIX 1: Bypass OpenAI requirement explicitly
+# 1. Hamne NA set kiya hai taaki CrewAI "Missing API Key" ka error na de,
+# lekin neeche hum Gemini set karenge taaki wo is NA key ko use na kare.
 os.environ["OPENAI_API_KEY"] = "NA"
 
 from crewai import Crew, Process
@@ -17,8 +18,9 @@ class LifeOpsCrew:
     
     def __init__(self, user_context: Dict[str, Any]):
         self.user_context = user_context
-        self.tasks = LifeOpsTasks(user_context)
+        # Agents instance create kar rahe hain taaki hum Gemini LLM object access kar sakein
         self.agents = LifeOpsAgents()
+        self.tasks = LifeOpsTasks(user_context)
     
     def kickoff(self) -> Dict[str, Any]:
         """Execute the complete LifeOps analysis v2"""
@@ -33,8 +35,10 @@ class LifeOpsCrew:
         # 2. Create Coordination Task with Context
         coordination_task = self.tasks.create_life_coordination_task([health_task, finance_task, study_task])
         
-        # 3. Create Crew (Using all agents and tasks)
-        # FIX 2: memory=False to prevent OpenAI embedding errors
+        # 3. Create Crew (Fix: Pass Gemini LLM explicitly)
+        # Hum agents instance se configured Gemini LLM le rahe hain
+        gemini_llm = self.agents.llm
+        
         crew = Crew(
             agents=[
                 health_task.agent, 
@@ -50,7 +54,9 @@ class LifeOpsCrew:
             ],
             process=Process.sequential,
             verbose=True,
-            memory=False 
+            memory=False, # Memory False rakhna zaroori hai taaki OpenAI embeddings call na ho
+            manager_llm=gemini_llm, # <-- MAIN FIX: Manager ko Gemini use karne ke liye force karein
+            llm=gemini_llm # <-- MAIN FIX: Default LLM bhi Gemini set karein
         )
         
         print("🧠 Initiating Crew Execution...")
@@ -59,7 +65,6 @@ class LifeOpsCrew:
         crew.kickoff()
         
         # 5. Extract Results securely
-        # FIX 3: Accessing output directly from task objects AFTER kickoff
         health_result = str(health_task.output)
         finance_result = str(finance_task.output)
         study_result = str(study_task.output)

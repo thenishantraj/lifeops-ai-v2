@@ -4,7 +4,7 @@ LifeOps AI v2 - Enhanced Utility Functions
 import os
 import json
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, List  # Added List import here
 import plotly.graph_objects as go
 import plotly.express as px
 import pandas as pd

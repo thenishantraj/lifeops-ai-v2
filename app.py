@@ -9,6 +9,12 @@ import json
 import time
 import pandas as pd
 
+import os
+os.environ["OPENAI_API_KEY"] = "sk-NA"
+os.environ["OPENAI_MODEL_NAME"] = "gpt-3.5-turbo"
+os.environ["OPENAI_ORGANIZATION"] = ""
+os.environ["OPENAI_BASE_URL"] = "http://dummy.openai.com"  # Redirect OpenAI calls
+
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 

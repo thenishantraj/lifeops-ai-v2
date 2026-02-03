@@ -34,7 +34,7 @@ class LifeOpsAgents:
     def __init__(self):
         # 3. CHANGE: Model का नाम सही करें (gemini-pro या gemini-1.5-flash)
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-pro",
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
@@ -91,3 +91,4 @@ class LifeOpsAgents:
             self.create_study_agent(),
             self.create_life_coordinator()
         ]
+

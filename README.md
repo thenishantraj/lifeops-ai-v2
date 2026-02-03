@@ -437,23 +437,25 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
+---
+
 ## 📞 Contact
 
-- **Project Maintainer**: Your Name
-- **Email**: your.email@example.com
-- **GitHub**: @yourusername
-- **Issues**: [GitHub Issues](https://github.com/yourusername/lifeops-ai/issues)
-- **Documentation**: Read the Docs
-- **Community**: Join our Discord
+- **Project Maintainer**: Nishant Raj
+- **Email**: nishantraj6581@gmail.com
+- **GitHub Profile**: [@thenishantraj](https://github.com/thenishantraj)
+- **Project Link**: [LifeOps AI v2 Repo](https://github.com/thenishantraj/lifeops-ai-v2)
+- **Issues**: [Report a Bug](https://github.com/thenishantraj/lifeops-ai-v2/issues)
 - **Twitter**: @LifeOpsAI
 
 <div align="center">
-Made with ❤️ and 🤖 by the LifeOps AI Team
+  
+Made with ❤️ and 🤖 by **Nishant Raj**
 
-"Optimize Your Life, Amplify Your Potential"
+*"Optimize Your Life, Amplify Your Potential"*
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/lifeops-ai?style=social)](https://github.com/yourusername/lifeops-ai/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/yourusername/lifeops-ai?style=social)](https://github.com/yourusername/lifeops-ai/network/members)
+[![GitHub stars](https://img.shields.io/github/stars/thenishantraj/lifeops-ai-v2?style=social)](https://github.com/thenishantraj/lifeops-ai-v2/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/thenishantraj/lifeops-ai-v2?style=social)](https://github.com/thenishantraj/lifeops-ai-v2/network/members)
 
 </div>
 ```

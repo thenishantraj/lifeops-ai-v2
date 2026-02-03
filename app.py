@@ -796,6 +796,3 @@ def main():
         
         # Refresh the UI state with the newly added items
         st.session_state.todo_items = db.get_pending_actions()
-
-if __name__ == "__main__":
-    main()

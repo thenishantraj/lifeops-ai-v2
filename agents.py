@@ -5,7 +5,7 @@ import os
 from typing import List, Optional
 from crewai import Agent, Task, Crew, Process
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.tools import tool
+from crewai.tools import tool
 from dotenv import load_dotenv
 import json
 from datetime import datetime, timedelta
@@ -162,3 +162,4 @@ class LifeOpsAgents:
             self.create_life_coordinator(),
             self.create_reflection_agent()
         ]
+

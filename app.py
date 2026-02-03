@@ -9,14 +9,12 @@ import json
 import time
 import pandas as pd
 
-import os
-os.environ["OPENAI_API_KEY"] = "sk-NA"
-os.environ["OPENAI_MODEL_NAME"] = "gpt-3.5-turbo"
-os.environ["OPENAI_ORGANIZATION"] = ""
-os.environ["OPENAI_BASE_URL"] = "http://dummy.openai.com"  # Redirect OpenAI calls
-
 # Add current directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Set OpenAI environment variables to bypass requirements
+os.environ["OPENAI_API_KEY"] = "sk-NA"
+os.environ["OPENAI_MODEL_NAME"] = "gpt-3.5-turbo"
 
 from utils import (
     load_env, format_date, calculate_days_until,
@@ -29,7 +27,7 @@ from database import LifeOpsDatabase
 # Initialize database
 db = LifeOpsDatabase()
 
-# Page configuration (UNCHANGED from v1)
+# Page configuration
 st.set_page_config(
     page_title="LifeOps AI v2",
     page_icon="🚀",
@@ -37,7 +35,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS (ADD NEW STYLES ONLY, KEEP EXISTING)
+# Custom CSS
 st.markdown("""
 <style>
     /* KEEP ALL EXISTING v1 CSS */
@@ -169,7 +167,36 @@ def initialize_session_state():
     if 'notes' not in st.session_state:
         st.session_state.notes = db.get_notes()
 
-# ... [REST OF THE INITIALIZATION AND SIDEBAR CODE REMAINS IDENTICAL TO v1] ...
+def extract_action_items_from_results(results):
+    """Extract action items from AI results and add to database using enhanced utility"""
+    from utils import extract_action_items  # Import the utility function
+    
+    all_text = ""
+    # Combine results from all analyzed domains
+    for key in ['health', 'finance', 'study', 'coordination']:
+        if key in results:
+            all_text += results[key] + " "
+    
+    # Use the regex-based utility to get a clean list of actions
+    actions = extract_action_items(all_text)
+    
+    for action in actions:
+        # Enhanced category detection logic
+        category = "General"
+        action_lower = action.lower()
+        
+        if any(word in action_lower for word in ["health", "exercise", "sleep", "medicine"]):
+            category = "Health"
+        elif any(word in action_lower for word in ["finance", "budget", "money", "spend"]):
+            category = "Finance"
+        elif any(word in action_lower for word in ["study", "learn", "exam", "assignment"]):
+            category = "Study"
+        
+        # Clean and add the task to the database
+        if len(action) > 10:  # Safety check for meaningful content
+            db.add_action_item(action[:200], category, "AI Agent")
+    
+    st.session_state.todo_items = db.get_pending_actions()
 
 def main():
     """Main application function v2"""
@@ -186,11 +213,11 @@ def main():
     with col2:
         st.image("https://cdn-icons-png.flaticon.com/512/1998/1998678.png", width=100)
     
-    # Sidebar (KEPT IDENTICAL TO v1 - no changes to input style)
+    # Sidebar
     with st.sidebar:
         st.markdown("### ⚙️ Life Configuration v2")
         
-        # User Inputs (EXACTLY SAME AS v1)
+        # User Inputs
         st.markdown("#### 📊 Current Status")
         
         stress_level = st.slider(
@@ -253,7 +280,7 @@ def main():
             "Save for emergency fund, reduce unnecessary expenses"
         )
         
-        # NEW v2 sidebar additions (in collapsible expanders to maintain density)
+        # NEW v2 sidebar additions
         with st.expander("💊 Medicine Vault", expanded=False):
             medicine_name = st.text_input("Medicine Name")
             medicine_dosage = st.text_input("Dosage (e.g., 500mg)")
@@ -317,7 +344,7 @@ def main():
     ])
     
     with tab1:
-        # Dashboard (IDENTICAL TO v1 - no changes)
+        # Dashboard
         st.markdown("## 📊 Life Dashboard v2")
         
         # Metrics
@@ -358,7 +385,7 @@ def main():
             </div>
             """, unsafe_allow_html=True)
         
-        # Charts (IDENTICAL TO v1)
+        # Charts
         col1, col2 = st.columns(2)
         
         with col1:
@@ -416,7 +443,7 @@ def main():
                     st.session_state.processing = False
                     
                     # Auto-extract action items from results
-                    self._extract_action_items_from_results(results)
+                    extract_action_items_from_results(results)
                     
                     # Show success message
                     st.success("✅ LifeOps v2 analysis complete with Gemini Validation!")
@@ -771,37 +798,6 @@ def main():
                     file_name=f"weekly_report_{datetime.now().strftime('%Y%m%d')}.md",
                     mime="text/markdown"
                 )
-
-    def _extract_action_items_from_results(self, results):
-        """Extract action items from AI results and add to database using enhanced utility"""
-        from utils import extract_action_items  # Import the utility function
-        
-        all_text = ""
-        # Combine results from all analyzed domains
-        for key in ['health', 'finance', 'study', 'coordination']:
-            if key in results:
-                all_text += results[key] + " "
-        
-        # Use the regex-based utility to get a clean list of actions
-        actions = extract_action_items(all_text)
-        
-        for action in actions:
-            # Enhanced category detection logic
-            category = "General"
-            action_lower = action.lower()
-            
-            if any(word in action_lower for word in ["health", "exercise", "sleep", "medicine"]):
-                category = "Health"
-            elif any(word in action_lower for word in ["finance", "budget", "money", "spend"]):
-                category = "Finance"
-            elif any(word in action_lower for word in ["study", "learn", "exam", "assignment"]):
-                category = "Study"
-            
-            # Clean and add the task to the database
-            if len(action) > 10:  # Safety check for meaningful content
-                db.add_action_item(action[:200], category, "AI Agent")
-        
-        st.session_state.todo_items = db.get_pending_actions()
 
 if __name__ == "__main__":
     main()

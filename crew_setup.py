@@ -34,7 +34,7 @@ class LifeOpsCrew:
     def kickoff(self) -> Dict[str, Any]:
         """Execute the complete LifeOps analysis v2 - Direct Gemini Implementation"""
         
-        print("🚀 Starting LifeOps AI v2 Analysis (Direct Gemini)...")
+        print("🚀 Starting LifeOps AI Analysis...")
         
         try:
             # Generate real analysis using Gemini directly
@@ -50,7 +50,7 @@ class LifeOpsCrew:
                 "study": study_result,
                 "coordination": coordination_result,
                 "validation_report": {
-                    "summary": "Gemini Validation Protocol Complete",
+                    "summary": "Validation Protocol Complete",
                     "health_approved": "✅ Verified",
                     "finance_approved": "✅ Verified",
                     "study_approved": "✅ Verified",
@@ -60,7 +60,7 @@ class LifeOpsCrew:
                 "user_context": self.user_context
             }
             
-            print("✅ Direct Gemini Analysis Complete!")
+            print("✅ Direct Analysis Complete!")
             return results
             
         except Exception as e:
@@ -69,8 +69,8 @@ class LifeOpsCrew:
             return self._generate_fallback_results()
     
     def _generate_health_analysis(self) -> str:
-        """Generate health analysis using Gemini"""
-        prompt = f"""As a Health and Wellness Expert (Dr. Maya Patel), provide comprehensive health recommendations:
+        """Generate health analysis"""
+        prompt = f"""As a Health and Wellness Expert, provide comprehensive health recommendations:
 
 USER CONTEXT:
 - Stress Level: {self.user_context.get('stress_level', 5)}/10
@@ -103,7 +103,7 @@ Focus on actionable, practical advice that can be implemented immediately."""
         current_expenses = self.user_context.get('current_expenses', 1500)
         savings = max(0, monthly_budget - current_expenses)
         
-        prompt = f"""As a Personal Finance Advisor (Alex Chen, CFA), provide comprehensive financial recommendations:
+        prompt = f"""As a Personal Finance Advisor, provide comprehensive financial recommendations:
 
 USER CONTEXT:
 - Monthly Budget: ${monthly_budget}
@@ -136,7 +136,7 @@ Provide concrete advice like "Reduce coffee shop spending by $50/week"."""
         days_until_exam = self.user_context.get('days_until_exam', 30)
         study_hours = self.user_context.get('current_study_hours', 3)
         
-        prompt = f"""As a Learning Specialist (Prof. James Wilson), provide comprehensive study recommendations:
+        prompt = f"""As a Learning Specialist, provide comprehensive study recommendations:
 
 USER CONTEXT:
 - Exam Date: {self.user_context.get('exam_date', 'Not specified')}
@@ -164,7 +164,7 @@ Include a sample daily schedule with exact time blocks."""
     
     def _generate_coordination_analysis(self, health: str, finance: str, study: str) -> str:
         """Generate integrated coordination analysis"""
-        prompt = f"""As a Life Coordinator (Sophia Williams), create an integrated life plan:
+        prompt = f"""As a Life Coordinator, create an integrated life plan:
 
 USER'S PRIMARY CONCERN: {self.user_context.get('problem', 'Life optimization')}
 
@@ -287,7 +287,7 @@ Keep each insight concise (1-2 sentences)."""
 2. Schedule 3 exercise sessions this week
 3. Practice 10-minute meditation before bed
 
-*Analysis by Dr. Maya Patel, Health and Wellness Expert*"""
+*Analysis by Health and Wellness Expert*"""
     
     def _get_default_finance_analysis(self) -> str:
         """Default finance analysis"""
@@ -328,7 +328,7 @@ Keep each insight concise (1-2 sentences)."""
 2. Set up automatic savings transfer
 3. Review one subscription service
 
-*Analysis by Alex Chen, Personal Finance Advisor*"""
+*Analysis Personal Finance Advisor*"""
     
     def _get_default_study_analysis(self) -> str:
         """Default study analysis"""
@@ -370,7 +370,7 @@ Keep each insight concise (1-2 sentences)."""
 2. Set up Pomodoro timer
 3. Identify 3 key topics to master this week
 
-*Analysis by Prof. James Wilson, Learning Specialist*"""
+*Analysis by Learning Specialist*"""
     
     def _get_default_coordination_analysis(self) -> str:
         """Default coordination analysis"""
@@ -426,4 +426,4 @@ Every Sunday evening:
 3. Celebrate wins
 4. Identify 1-2 improvements
 
-*Coordinated by Sophia Williams, Life Coordinator*"""
+*Coordinated Life Coordinator*"""

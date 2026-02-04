@@ -142,66 +142,6 @@ st.markdown("""
         background: #FF9800;
         color: white;
     }
-    
-    /* NEW: Horizontal Analysis Container */
-    .horizontal-container {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 20px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 10px;
-    }
-    .domain-card {
-        flex: 1;
-        min-width: 300px;
-        max-width: 400px;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        overflow: hidden;
-        border-top: 4px solid;
-        transition: transform 0.3s ease;
-    }
-    .domain-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
-    }
-    .domain-header {
-        padding: 1.2rem 1.5rem;
-        color: white;
-        font-weight: 600;
-        font-size: 1.1rem;
-    }
-    .domain-content {
-        padding: 1.5rem;
-        max-height: 400px;
-        overflow-y: auto;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
-    .domain-content h1, 
-    .domain-content h2, 
-    .domain-content h3 {
-        margin-top: 0.5rem;
-        margin-bottom: 0.8rem;
-        font-size: 1.1rem;
-    }
-    .domain-content ul, 
-    .domain-content ol {
-        padding-left: 1.2rem;
-        margin-bottom: 1rem;
-    }
-    .domain-content li {
-        margin-bottom: 0.4rem;
-    }
-    .coordination-card {
-        background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
-        border: 2px solid #667eea30;
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-top: 1.5rem;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -372,104 +312,6 @@ def _extract_action_items_from_results(results):
             db.add_action_item(action[:200], category, "AI Agent")
     
     st.session_state.todo_items = db.get_pending_actions()
-
-def display_horizontal_analysis(results):
-    """Display analysis results horizontally in domain cards"""
-    
-    # Validation Report
-    if 'validation_report' in results:
-        st.markdown("### 📊 Validation Protocol Report")
-        validation = results['validation_report']
-        col1, col2, col3, col4, col5 = st.columns(5)
-        with col1:
-            st.metric("Health", validation.get('health_approved', 'N/A'))
-        with col2:
-            st.metric("Finance", validation.get('finance_approved', 'N/A'))
-        with col3:
-            st.metric("Study", validation.get('study_approved', 'N/A'))
-        with col4:
-            st.metric("Score", f"{validation.get('overall_score', 0)}/100")
-        with col5:
-            st.metric("Status", "✅ Complete")
-    
-    # Cross-domain insights
-    st.markdown("### 🔄 Cross-Domain Insights")
-    st.markdown(f"""
-    <div class="insight-highlight">
-        <p style="font-size: 1.1rem; font-weight: 500;">
-            {results.get('cross_domain_insights', 'No cross-domain insights extracted.')}
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("### 📋 Domain Analysis")
-    
-    # Create horizontal container with domain cards
-    st.markdown('<div class="horizontal-container">', unsafe_allow_html=True)
-    
-    # Health Card
-    st.markdown(f"""
-    <div class="domain-card">
-        <div class="domain-header" style="background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);">
-            🏥 Health Analysis
-        </div>
-        <div class="domain-content">
-            {results.get('health', 'No health analysis available.')}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Finance Card
-    st.markdown(f"""
-    <div class="domain-card">
-        <div class="domain-header" style="background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);">
-            💰 Finance Analysis
-        </div>
-        <div class="domain-content">
-            {results.get('finance', 'No finance analysis available.')}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Study Card
-    st.markdown(f"""
-    <div class="domain-card">
-        <div class="domain-header" style="background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);">
-            📚 Study Analysis
-        </div>
-        <div class="domain-content">
-            {results.get('study', 'No study analysis available.')}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Coordination Results
-    st.markdown("### 🎯 Integrated Life Plan")
-    st.markdown(f"""
-    <div class="coordination-card">
-        {results.get('coordination', 'No coordination plan available.')}
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Quick Actions Section
-    st.markdown("### ⚡ Quick Actions")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        if st.button("📥 Extract Action Items", use_container_width=True):
-            _extract_action_items_from_results(results)
-            st.success("Action items extracted to To-Do list!")
-            
-    with col2:
-        if st.button("🔄 Regenerate Analysis", use_container_width=True):
-            st.session_state.analysis_results = None
-            st.rerun()
-            
-    with col3:
-        if st.button("📋 View To-Do List", use_container_width=True):
-            st.switch_page("app (7).py#tab3")  # Navigate to Action System tab
 
 def main():
     """Main application function v2"""
@@ -683,7 +525,7 @@ def main():
         )
     
     with tab2:
-        # AI Analysis Area v2 with Horizontal Layout
+        # AI Analysis Area v2 with Validation
         st.markdown("## 🤖 AI Life Analysis")
         
         # Validation Protocol Status
@@ -740,8 +582,63 @@ def main():
             if 'error' in results:
                 st.warning(f"⚠️ Analysis completed with fallback mode: {results['error'][:100]}")
             
-            # Use new horizontal display function
-            display_horizontal_analysis(results)
+            # Validation Report Highlight
+            if 'validation_report' in results:
+                st.markdown("### Validation Protocol Report")
+                validation = results['validation_report']
+                col1, col2, col3, col4 = st.columns(4)
+                with col1:
+                    st.metric("Health", validation.get('health_approved', 'N/A'))
+                with col2:
+                    st.metric("Finance", validation.get('finance_approved', 'N/A'))
+                with col3:
+                    st.metric("Study", validation.get('study_approved', 'N/A'))
+                with col4:
+                    st.metric("Score", f"{validation.get('overall_score', 0)}/100")
+            
+            # Cross-domain insights highlight
+            st.markdown("### 🔄 Validated Cross-Domain Insights")
+            st.markdown(f"""
+            <div class="insight-highlight">
+                <p style="font-size: 1.1rem; font-weight: 500;">
+                    {results.get('cross_domain_insights', 'No cross-domain insights extracted.')}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Agent outputs in expandable sections
+            st.markdown("### 📋 Domain Analysis (Validated)")
+            
+            # Health Analysis
+            with st.expander("🏥 Health Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Health & Wellness Recommendations",
+                    results['health'],
+                    "Health",
+                    "#4CAF50"
+                ), unsafe_allow_html=True)
+            
+            # Finance Analysis
+            with st.expander("💰 Finance Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Financial Planning & Budgeting",
+                    results['finance'],
+                    "Finance",
+                    "#FF9800"
+                ), unsafe_allow_html=True)
+            
+            # Study Analysis
+            with st.expander("📚 Study Analysis", expanded=True):
+                st.markdown(create_insight_card(
+                    "Learning & Productivity Strategy",
+                    results['study'],
+                    "Study",
+                    "#2196F3"
+                ), unsafe_allow_html=True)
+            
+            # Coordination Results
+            st.markdown("### 🎯 Integrated Life Plan (Validated)")
+            st.markdown(results['coordination'])
         
         elif not run_clicked:
             st.info("👈 Configure your life settings and click 'Run LifeOps Analysis' to begin with Validation Protocol.")

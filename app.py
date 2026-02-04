@@ -128,11 +128,11 @@ st.markdown("""
     }
     .validation-badge {
         display: inline-block;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        margin-right: 0.5rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 15px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        margin-right: 0.3rem;
     }
     .validation-approved {
         background: #4CAF50;

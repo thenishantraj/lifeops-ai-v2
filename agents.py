@@ -11,7 +11,10 @@ from datetime import datetime, timedelta
 
 load_dotenv()
 
-# Tools in Global Scope
+# Force CrewAI to use Google Gemini, not OpenAI
+os.environ["OPENAI_API_KEY"] = "not-needed"
+os.environ["OPENAI_MODEL_NAME"] = "not-needed"
+
 @tool("schedule_action_item")
 def schedule_action_item(task: str, category: str, priority: str = "medium"):
     """Schedule an action item in the system."""
@@ -31,59 +34,89 @@ def validate_cross_domain(domain: str, recommendation: str, context: dict):
 
 class LifeOpsAgents:
     def __init__(self):
-        # Initialize Gemini LLM
+        # Use gemini-pro or gemini-1.5-flash depending on your access
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-pro",  # or "gemini-1.5-flash" for faster responses
             temperature=0.7,
             google_api_key=os.getenv("GOOGLE_API_KEY")
         )
-    
-    def _create_agent(self, role, goal, backstory, tools=None, allow_delegation=False):
-        """Helper method to create agents with consistent configuration"""
-        if tools is None:
-            tools = []
+        
+        # CRITICAL FIX: Monkey patch to prevent CrewAI from using OpenAI
+        self._patch_crewai_for_gemini()
+
+    def _patch_crewai_for_gemini(self):
+        """Patch CrewAI internals to force Gemini usage"""
+        import crewai
+        from crewai.llm import LLM
+        
+        # Create a custom LLM wrapper that only uses Gemini
+        class GeminiLLM(LLM):
+            def __init__(self, llm):
+                self._llm = llm
+                super().__init__()
             
-        return Agent(
-            role=role,
-            goal=goal,
-            backstory=backstory,
-            verbose=True,
-            allow_delegation=allow_delegation,
-            llm=self.llm,  # Explicitly use Gemini LLM
-            tools=tools
-        )
+            @property
+            def llm(self):
+                return self._llm
+            
+            def __getattr__(self, name):
+                # Delegate everything to the underlying Gemini LLM
+                return getattr(self._llm, name)
+        
+        # Monkey patch the LLM creation
+        original_init = Agent.__init__
+        
+        def patched_init(self, *args, **kwargs):
+            # Force the llm parameter to use our Gemini LLM
+            if 'llm' not in kwargs:
+                kwargs['llm'] = GeminiLLM(self.llm)
+            original_init(self, *args, **kwargs)
+        
+        # Temporarily apply the patch
+        Agent.__init__ = patched_init
 
     def create_health_agent(self) -> Agent:
-        return self._create_agent(
+        return Agent(
             role="Health and Wellness Expert",
             goal="Optimize health and wellness through personalized recommendations",
-            backstory="Dr. Maya Patel, a holistic health specialist with 15 years of experience integrating modern medicine with wellness practices.",
+            backstory="Dr. Maya Patel, with 15 years in integrative medicine, specializes in stress management and preventive healthcare.",
+            verbose=True,
+            allow_delegation=False,
+            llm=self.llm,
             tools=[schedule_action_item, set_reminder]
         )
     
     def create_finance_agent(self) -> Agent:
-        return self._create_agent(
+        return Agent(
             role="Personal Finance Advisor",
-            goal="Manage finances effectively and build wealth",
-            backstory="Alex Chen, a CFA with expertise in personal finance, budgeting, and investment strategies for millennials.",
+            goal="Manage finances efficiently and build wealth",
+            backstory="Alex Chen, a CFA with expertise in personal finance and behavioral economics.",
+            verbose=True,
+            allow_delegation=False,
+            llm=self.llm,
             tools=[schedule_action_item]
         )
     
     def create_study_agent(self) -> Agent:
-        return self._create_agent(
+        return Agent(
             role="Learning Specialist",
-            goal="Optimize study habits and academic performance",
-            backstory="Prof. James Wilson, a cognitive scientist specializing in learning techniques, memory retention, and exam preparation strategies.",
+            goal="Optimize study patterns and academic performance",
+            backstory="Prof. James Wilson, cognitive scientist specializing in learning optimization and productivity.",
+            verbose=True,
+            allow_delegation=False,
+            llm=self.llm,
             tools=[schedule_action_item, set_reminder]
         )
     
     def create_life_coordinator(self) -> Agent:
-        return self._create_agent(
+        return Agent(
             role="Life Coordinator",
             goal="Orchestrate life domains for optimal balance and productivity",
-            backstory="Sophia Williams, a former project manager turned life coach who specializes in integrating health, finance, and study goals.",
-            tools=[validate_cross_domain, schedule_action_item],
-            allow_delegation=True
+            backstory="Sophia Williams, systems thinker and life architect with expertise in multi-domain optimization.",
+            verbose=True,
+            allow_delegation=True,
+            llm=self.llm,
+            tools=[validate_cross_domain, schedule_action_item]
         )
 
     def get_all_agents(self) -> List[Agent]:

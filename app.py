@@ -330,7 +330,7 @@ def main():
     
     # Sidebar
     with st.sidebar:
-        st.markdown("### ⚙️ Life Configuration v2")
+        st.markdown("### ⚙️ Life Configuration")
         
         # User Inputs
         st.markdown("#### 📊 Current Status")
@@ -425,7 +425,7 @@ def main():
         # Run button
         st.markdown("---")
         run_clicked = st.button(
-            "🚀 Run LifeOps v2 Analysis",
+            "🚀 Run LifeOps Analysis",
             type="primary",
             use_container_width=True
         )
@@ -526,7 +526,7 @@ def main():
     
     with tab2:
         # AI Analysis Area v2 with Validation
-        st.markdown("## 🤖 AI Life Analysis v2")
+        st.markdown("## 🤖 AI Life Analysis")
         
         # Validation Protocol Status
         col1, col2, col3, col4 = st.columns(4)
@@ -554,11 +554,11 @@ def main():
                     try:
                         crew = LifeOpsCrew(user_inputs)
                         results = crew.kickoff()
-                        st.info("✅ Used CrewAI with Gemini successfully!")
+                        st.info("✅ Successfully!")
                     except Exception as crew_error:
-                        st.warning(f"⚠️ CrewAI encountered an issue. Using direct Gemini analysis...")
+                        st.warning(f"⚠️ CrewAI encountered an issue....")
                         results = run_fallback_gemini_analysis(user_inputs)
-                        st.info("✅ Used direct Gemini analysis successfully!")
+                        st.info("✅ Analysis successfully!")
                     
                     # Store results
                     st.session_state.analysis_results = results
@@ -568,7 +568,7 @@ def main():
                     _extract_action_items_from_results(results)
                     
                     # Show success message
-                    st.success("✅ LifeOps v2 analysis complete!")
+                    st.success("✅ LifeOps analysis complete!")
                     
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)[:200]}")
@@ -584,7 +584,7 @@ def main():
             
             # Validation Report Highlight
             if 'validation_report' in results:
-                st.markdown("### 🔬 Gemini Validation Protocol Report")
+                st.markdown("### Validation Protocol Report")
                 validation = results['validation_report']
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
@@ -641,7 +641,7 @@ def main():
             st.markdown(results['coordination'])
         
         elif not run_clicked:
-            st.info("👈 Configure your life settings and click 'Run LifeOps v2 Analysis' to begin with Validation Protocol.")
+            st.info("👈 Configure your life settings and click 'Run LifeOps Analysis' to begin with Validation Protocol.")
     
     with tab3:
         # Action System v2

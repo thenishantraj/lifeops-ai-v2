@@ -1,5 +1,5 @@
 """
-LifeOps AI v2 - Multi-User Streamlit Application with Professional UI
+LifeOps AI v2
 """
 import streamlit as st
 import os

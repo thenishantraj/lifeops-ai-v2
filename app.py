@@ -39,6 +39,23 @@ st.set_page_config(
 # Apply Professional Styles
 st.markdown(get_professional_styles(), unsafe_allow_html=True)
 
+st.markdown("""
+<style>
+
+    header {
+        visibility: visible !important; 
+    }
+    
+
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+        color: black !important;
+        z-index: 100000;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 def initialize_session_state():
     """Initialize session state variables for multi-user"""
     # Authentication state

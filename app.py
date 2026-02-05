@@ -38,6 +38,33 @@ st.set_page_config(
 
 # Apply Professional Styles
 st.markdown(get_professional_styles(), unsafe_allow_html=True)
+st.markdown("""
+<style>
+    /* Top Header ko wapas dikhao taaki Sidebar Toggle Button dikhe */
+    header {
+        visibility: visible !important; 
+    }
+    
+    /* Sidebar Toggle Button (Arrow/Hamburger) ko visible aur clickable banao */
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+        color: black !important;
+        z-index: 100000;
+    }
+    
+    /* Analysis Report Styles */
+    .report-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        border: 1px solid #eee;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 
 st.markdown("""
 <style>

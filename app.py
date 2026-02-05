@@ -916,50 +916,39 @@ def run_ai_analysis(user_inputs):
             st.error(f"❌ Error: {str(e)[:200]}")
             st.session_state.processing = False
 
+import streamlit as st
+
 def main():
-    
-    
-    # Initialize session state
     initialize_session_state()
     
-    # Check authentication
     if not st.session_state.authenticated:
-        
         login_page()
     else:
-        # --- AUTHENTICATED STATE ---
-        
-        
         render_sidebar()
         
-
         st.markdown(
             """
             <style>
-                /* Sidebar Container ko zabardasti dikhao */
                 section[data-testid="stSidebar"] {
                     display: block !important;
                     visibility: visible !important;
-                    width: 300px !important; /* Sidebar ki width fix kar di */
+                    width: 300px !important;
                 }
                 
-                /* Sidebar Nav elements ko dikhao */
                 [data-testid="stSidebarNav"] {
                     display: block !important;
                     visibility: visible !important;
                 }
                 
-                /* WO ARROW BUTTON (Toggle) jo gayab ho jata hai, use wapas lao */
                 [data-testid="collapsedControl"] {
                     display: block !important;
                     visibility: visible !important;
-                    color: black !important; /* Arrow ka color Black */
-                    background-color: rgba(255, 255, 255, 0.8) !important; /* Button ke peeche safed background */
+                    color: black !important;
+                    background-color: rgba(255, 255, 255, 0.8) !important;
                     border-radius: 50%;
-                    z-index: 999999 !important; /* Sabse upar dikhe */
+                    z-index: 999999 !important;
                 }
                 
-                /* Mobile Header (Hamburger Menu) ko bhi dikhao */
                 header[data-testid="stHeader"] {
                     background-color: transparent !important;
                     z-index: 100;
@@ -969,7 +958,6 @@ def main():
             unsafe_allow_html=True,
         )
         
-        # 3. Page Routing Logic 
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
         elif st.session_state.current_page == "Health Vault":

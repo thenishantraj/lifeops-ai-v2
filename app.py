@@ -1,6 +1,5 @@
 """
 LifeOps AI v2 - Multi-User Streamlit Application with Professional UI
-FIXED: Login HTML rendering, Dark Mode visibility, and Sidebar Navigation
 """
 import streamlit as st
 import os

@@ -917,7 +917,7 @@ def run_ai_analysis(user_inputs):
             st.session_state.processing = False
 
 def main():
-    """Main application function with FIXED navigation"""
+    """Main application function with FIXED navigation and Toggle Button"""
     
     # Initialize session state
     initialize_session_state()
@@ -930,15 +930,36 @@ def main():
         # Authenticated - Show Sidebar manually
         render_sidebar()
         
-        # Sidebar fix: Force display using CSS
+        # --- FIX: Sidebar aur Toggle Button dono ko wapas layein ---
         st.markdown(
             """
             <style>
-                [data-testid="stSidebar"] { display: block !important; }
+                /* Sidebar container ko visible karein */
+                [data-testid="stSidebar"] { 
+                    display: block !important; 
+                }
+                
+                /* Sidebar Collapse/Expand Button (Arrow) ko visible karein */
+                [data-testid="collapsedControl"] { 
+                    display: block !important; 
+                    color: black !important; /* Button ka color visible ho */
+                }
+                
+                /* Mobile Header (Hamburger Menu) ko bhi visible karein */
+                [data-testid="stHeader"] { 
+                    display: block !important; 
+                    background-color: transparent !important;
+                }
+                
+                /* Ye ensure karega ki navigation items dikhein */
+                [data-testid="stSidebarNav"] { 
+                    display: block !important; 
+                }
             </style>
             """,
             unsafe_allow_html=True,
         )
+        # ---------------------------------------------------------
         
         # Page routing logic
         if st.session_state.current_page == "Dashboard":

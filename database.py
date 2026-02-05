@@ -124,14 +124,21 @@ class LifeOpsDatabase:
             )
         ''')
         
-        # Create indexes for performance
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_action_items_user ON action_items(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_medicines_user ON medicines(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_bills_user ON bills(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_study_sessions_user ON study_sessions(user_id)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_smart_notes_user ON smart_notes(user_id)')
-        
         conn.commit()
+        
+        # Create indexes for performance - FIXED: Moved after table creation
+        try:
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_action_items_user ON action_items(user_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_medicines_user ON medicines(user_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bills_user ON bills(user_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_study_sessions_user ON study_sessions(user_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_smart_notes_user ON smart_notes(user_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
+            conn.commit()
+        except sqlite3.OperationalError as e:
+            print(f"Note: Some indexes already exist: {e}")
+            conn.rollback()  # Rollback if any index creation fails
+        
         conn.close()
     
     # ========== USER AUTHENTICATION METHODS ==========
@@ -622,3 +629,28 @@ class LifeOpsDatabase:
             stats['completion_rate'] = 0
         
         return stats
+    
+    def cleanup_old_data(self, days: int = 30):
+        """Clean up old completed data"""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Delete completed actions older than specified days
+        cursor.execute('''
+            DELETE FROM action_items 
+            WHERE completed = 1 AND completed_at < DATE('now', ?)
+        ''', (f'-{days} days',))
+        
+        # Delete old study sessions
+        cursor.execute('''
+            DELETE FROM study_sessions 
+            WHERE date < DATE('now', ?)
+        ''', (f'-{days*3} days',))
+        
+        conn.commit()
+        conn.close()
+    
+    def backup_database(self, backup_path: str):
+        """Create a backup of the database"""
+        import shutil
+        shutil.copy2(self.db_path, backup_path)

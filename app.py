@@ -33,7 +33,7 @@ st.set_page_config(
     page_title="LifeOps AI | Life Management Platform",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="expanded"  # Sidebar
+    initial_sidebar_state="expanded"  # Sidebar collapsed by default
 )
 
 # Apply Professional Styles
@@ -88,54 +88,38 @@ def login_page():
         [data-testid="stSidebar"] { display: none; }
         .login-container { display: flex; min-height: 100vh; }
         .login-left {
-            flex: 1;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             padding: 40px;
             color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
         }
         .login-right {
-            flex: 1;
             background: #ffffff !important;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
             padding: 40px;
             color: #000000 !important;
+            border-radius: 10px;
         }
-        /* Fix Text Visibility in Dark Mode */
-        .login-right h2, .login-right p, .login-right label, .login-right span {
-            color: #000000 !important;
-        }
-        .stTextInput input {
-            color: #000000 !important;
-            background-color: #f0f2f6 !important;
-        }
-        .features-list { margin-top: 40px; text-align: left; max-width: 400px; }
-        .feature-item { display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; color: white; }
-        .feature-icon { margin-right: 15px; font-size: 20px; }
-        .logo-title { font-size: 36px; font-weight: 700; margin-bottom: 10px; color: white; }
-        .logo-subtitle { font-size: 16px; opacity: 0.9; color: white; }
+        /* Fix Text Visibility */
+        h1, h2, h3, p, span, div { font-family: 'Helvetica Neue', sans-serif; }
+        .feature-item { margin-bottom: 15px; font-size: 16px; color: white; display: flex; align-items: center; }
+        .feature-icon { margin-right: 10px; font-size: 20px; }
     </style>
     """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # Left side - Branding
+        # Left side - Branding (FIXED: Added unsafe_allow_html=True)
         st.markdown("""
         <div class="login-left">
             <div style="text-align: center; margin-bottom: 40px;">
                 <div style="font-size: 64px; margin-bottom: 20px;">🧠</div>
-                <h1 class="logo-title">LifeOps AI</h1>
-                <p class="logo-subtitle">Your Intelligent Life Management Platform</p>
+                <h1 style="color: white; font-weight: bold;">LifeOps AI</h1>
+                <p style="color: white; opacity: 0.9;">Your Intelligent Life Management Platform</p>
             </div>
             
-            <div class="features-list">
+            <div style="margin-top: 40px;">
                 <div class="feature-item">
                     <span class="feature-icon">⚡</span> AI-Powered Life Optimization
                 </div>
@@ -145,22 +129,22 @@ def login_page():
                 <div class="feature-item">
                     <span class="feature-icon">🔒</span> Secure & Private Data Storage
                 </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎯</span> Personalized Recommendations
+                </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True) # <-- YE LINE SABSE ZAROORI HAI
     
     with col2:
         # Right side - Login Form
         st.markdown("""
         <div class="login-right">
-            <div style="width: 100%; max-width: 400px;">
-                <h2 style="font-size: 28px; font-weight: 600; margin-bottom: 10px;">Welcome Back</h2>
-                <p style="color: #666 !important; margin-bottom: 30px;">Sign in to continue to LifeOps</p>
-            </div>
+            <h2 style="color: black; text-align: center;">Welcome Back</h2>
+            <p style="color: grey; text-align: center; margin-bottom: 30px;">Sign in to continue to LifeOps</p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Tabs for Login/Signup
         tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
         
         with tab1:
@@ -176,7 +160,6 @@ def login_page():
                         st.session_state.user_id = user['id']
                         st.session_state.user_data = user
                         st.session_state.current_page = "Dashboard"
-                        st.success(f"Welcome back!")
                         st.rerun()
                     else:
                         st.error("Invalid email or password")
@@ -191,6 +174,11 @@ def login_page():
                         st.success("Account created! Please login.")
                     else:
                         st.error("Email already exists")
+        
+        st.markdown("""
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
 def logout():
     """Logout user"""
@@ -946,11 +934,21 @@ def main():
     
     # Check authentication
     if not st.session_state.authenticated:
-        # Login page (Sidebar hidden via CSS in login_page function)
+        # Login page (Sidebar humne CSS se chupaya hai upar wale function mein)
         login_page()
     else:
-        # Authenticated - Show Dashboard and Sidebar
+        # Authenticated - Show Sidebar manually
         render_sidebar()
+        
+        # Sidebar fix for mobile/collapsed state
+        st.markdown(
+            """
+            <style>
+                [data-testid="stSidebar"] { display: block !important; }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
         
         # Page routing logic
         if st.session_state.current_page == "Dashboard":

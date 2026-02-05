@@ -34,7 +34,7 @@ st.set_page_config(
     page_title="LifeOps AI | Life Management Platform",
     page_icon="🧠",
     layout="wide",
-    initial_sidebar_state="collapsed"  # Sidebar collapsed by default
+    initial_sidebar_state="expanded"  # Sidebar
 )
 
 # Apply Professional Styles
@@ -82,155 +82,83 @@ def initialize_session_state():
         st.session_state.notes = []
 
 def login_page():
-    """Render modern split-screen login page - FIXED: HTML rendering and Dark Mode visibility"""
-    # Add custom CSS for login page with Dark Mode fixes
+    """Render modern split-screen login page - FIXED"""
+    # Hide Sidebar specifically on Login Page using CSS
     st.markdown("""
     <style>
-    .login-container {
-        display: flex;
-        min-height: 100vh;
-    }
-    .login-left {
-        flex: 1;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 40px;
-        color: white;
-    }
-    .login-right {
-        flex: 1;
-        background: #ffffff !important;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 40px;
-        color: #000000 !important;
-    }
-    .login-right * {
-        color: #000000 !important;
-    }
-    .login-form-container {
-        width: 100%;
-        max-width: 400px;
-        background: #ffffff !important;
-        color: #000000 !important;
-    }
-    .form-title {
-        font-size: 28px;
-        font-weight: 600;
-        color: #2c3e50 !important;
-        margin-bottom: 10px;
-        text-align: center;
-    }
-    .form-subtitle {
-        color: #7f8c8d !important;
-        text-align: center;
-        margin-bottom: 30px;
-    }
-    .logo-container {
-        text-align: center;
-        margin-bottom: 40px;
-    }
-    .logo-icon {
-        font-size: 64px;
-        margin-bottom: 20px;
-    }
-    .logo-title {
-        font-size: 36px;
-        font-weight: 700;
-        margin-bottom: 10px;
-    }
-    .logo-subtitle {
-        font-size: 16px;
-        opacity: 0.9;
-    }
-    .features-list {
-        margin-top: 40px;
-        text-align: left;
-        max-width: 400px;
-    }
-    .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 20px;
-        font-size: 16px;
-    }
-    .feature-icon {
-        margin-right: 15px;
-        font-size: 20px;
-    }
-    /* Fix input fields for Dark Mode */
-    .stTextInput input, .stTextInput label, .stTextInput div {
-        color: #000000 !important;
-    }
-    .stTextInput > div > div > input {
-        background-color: #ffffff !important;
-        color: #000000 !important;
-        border: 1px solid #ddd !important;
-    }
-    /* Fix tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        background-color: #ffffff !important;
-    }
-    .stTabs [data-baseweb="tab"] {
-        color: #000000 !important;
-    }
-    /* Fix buttons */
-    .stButton button {
-        color: #ffffff !important;
-    }
+        [data-testid="stSidebar"] { display: none; }
+        .login-container { display: flex; min-height: 100vh; }
+        .login-left {
+            flex: 1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: white;
+        }
+        .login-right {
+            flex: 1;
+            background: #ffffff !important;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            color: #000000 !important;
+        }
+        /* Fix Text Visibility in Dark Mode */
+        .login-right h2, .login-right p, .login-right label, .login-right span {
+            color: #000000 !important;
+        }
+        .stTextInput input {
+            color: #000000 !important;
+            background-color: #f0f2f6 !important;
+        }
+        .features-list { margin-top: 40px; text-align: left; max-width: 400px; }
+        .feature-item { display: flex; align-items: center; margin-bottom: 20px; font-size: 16px; color: white; }
+        .feature-icon { margin-right: 15px; font-size: 20px; }
+        .logo-title { font-size: 36px; font-weight: 700; margin-bottom: 10px; color: white; }
+        .logo-subtitle { font-size: 16px; opacity: 0.9; color: white; }
     </style>
     """, unsafe_allow_html=True)
     
-    # Create two columns for split screen
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # Left side - Branding and Features (FIXED: Added unsafe_allow_html=True)
+        # Left side - Branding
         st.markdown("""
         <div class="login-left">
-            <div class="logo-container">
-                <div class="logo-icon">🧠</div>
+            <div style="text-align: center; margin-bottom: 40px;">
+                <div style="font-size: 64px; margin-bottom: 20px;">🧠</div>
                 <h1 class="logo-title">LifeOps AI</h1>
                 <p class="logo-subtitle">Your Intelligent Life Management Platform</p>
             </div>
             
             <div class="features-list">
                 <div class="feature-item">
-                    <span class="feature-icon">⚡</span>
-                    AI-Powered Life Optimization
+                    <span class="feature-icon">⚡</span> AI-Powered Life Optimization
                 </div>
                 <div class="feature-item">
-                    <span class="feature-icon">📊</span>
-                    Health, Finance & Study Integration
+                    <span class="feature-icon">📊</span> Health, Finance & Study Integration
                 </div>
                 <div class="feature-item">
-                    <span class="feature-icon">🔒</span>
-                    Secure & Private Data Storage
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🎯</span>
-                    Personalized Recommendations
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📈</span>
-                    Progress Tracking & Analytics
+                    <span class="feature-icon">🔒</span> Secure & Private Data Storage
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)  # FIXED BUG 1: Added unsafe_allow_html=True
+        """, unsafe_allow_html=True)
     
     with col2:
-        # Right side - Login Form (FIXED BUG 2: Dark Mode visibility)
+        # Right side - Login Form
         st.markdown("""
         <div class="login-right">
-            <div class="login-form-container">
-                <h2 class="form-title">Welcome Back</h2>
-                <p class="form-subtitle">Sign in to continue to LifeOps</p>
+            <div style="width: 100%; max-width: 400px;">
+                <h2 style="font-size: 28px; font-weight: 600; margin-bottom: 10px;">Welcome Back</h2>
+                <p style="color: #666 !important; margin-bottom: 30px;">Sign in to continue to LifeOps</p>
+            </div>
+        </div>
         """, unsafe_allow_html=True)
         
         # Tabs for Login/Signup
@@ -243,51 +171,27 @@ def login_page():
                 login_button = st.form_submit_button("Login to LifeOps", type="primary", use_container_width=True)
                 
                 if login_button:
-                    if email and password:
-                        user = db.authenticate_user(email, password)
-                        if user:
-                            st.session_state.authenticated = True
-                            st.session_state.user_id = user['id']
-                            st.session_state.user_data = user
-                            st.session_state.current_page = "Dashboard"
-                            st.success(f"Welcome back, {user.get('name', email)}!")
-                            time.sleep(0.5)
-                            st.rerun()
-                        else:
-                            st.error("Invalid email or password")
+                    user = db.authenticate_user(email, password)
+                    if user:
+                        st.session_state.authenticated = True
+                        st.session_state.user_id = user['id']
+                        st.session_state.user_data = user
+                        st.session_state.current_page = "Dashboard"
+                        st.success(f"Welcome back!")
+                        st.rerun()
                     else:
-                        st.warning("Please enter both email and password")
+                        st.error("Invalid email or password")
         
         with tab2:
             with st.form("signup_form"):
-                name = st.text_input("Full Name", placeholder="John Doe")
-                email = st.text_input("Email", placeholder="you@example.com")
-                col_a, col_b = st.columns(2)
-                with col_a:
-                    password = st.text_input("Password", type="password", placeholder="••••••••", key="signup_pass")
-                with col_b:
-                    confirm_password = st.text_input("Confirm Password", type="password", placeholder="••••••••", key="signup_confirm")
-                
-                signup_button = st.form_submit_button("Create Account", type="primary", use_container_width=True)
-                
-                if signup_button:
-                    if not all([name, email, password, confirm_password]):
-                        st.warning("Please fill in all fields")
-                    elif password != confirm_password:
-                        st.error("Passwords do not match")
-                    elif len(password) < 6:
-                        st.error("Password must be at least 6 characters")
+                name = st.text_input("Full Name")
+                email = st.text_input("Email")
+                password = st.text_input("Password", type="password")
+                if st.form_submit_button("Create Account"):
+                    if db.create_user(email, password, name):
+                        st.success("Account created! Please login.")
                     else:
-                        user_id = db.create_user(email, password, name)
-                        if user_id:
-                            st.success("Account created successfully! Please login.")
-                        else:
-                            st.error("Email already exists")
-        
-        st.markdown("""
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+                        st.error("Email already exists")
 
 def logout():
     """Logout user"""
@@ -1043,16 +947,11 @@ def main():
     
     # Check authentication
     if not st.session_state.authenticated:
-        # Show login page with no sidebar
-        st.set_page_config(initial_sidebar_state="collapsed")
+        # Login page (Sidebar hidden via CSS in login_page function)
         login_page()
     else:
-        # FIXED BUG 3: Create proper sidebar navigation
-        # Render sidebar first
+        # Authenticated - Show Dashboard and Sidebar
         render_sidebar()
-        
-        # Now render the selected page based on current_page state
-        # The render_sidebar() function already handles updating current_page via radio buttons
         
         # Page routing logic
         if st.session_state.current_page == "Dashboard":
@@ -1068,7 +967,6 @@ def main():
         elif st.session_state.current_page == "Profile":
             profile_page()
         else:
-            # Default to dashboard
             dashboard_page()
 
 if __name__ == "__main__":

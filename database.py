@@ -1,14 +1,13 @@
 """
-LifeOps AI v2 - Enhanced Multi-User Database Module
+LifeOps AI v2 - Enhanced Multi-User Database Module with Migration Support
 """
 import sqlite3
 import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
-import uuid
 
 class LifeOpsDatabase:
-    """SQLite database for LifeOps AI v2 with Multi-User Support"""
+    """SQLite database for LifeOps AI v2 with Multi-User Support and Migration"""
     
     def __init__(self, db_path="lifeops_data.db"):
         self.db_path = db_path
@@ -18,6 +17,9 @@ class LifeOpsDatabase:
         """Initialize database with required tables and multi-user support"""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        
+        # Check if we need to migrate from old schema
+        self._check_and_migrate(cursor)
         
         # Users table
         cursor.execute('''
@@ -44,8 +46,7 @@ class LifeOpsDatabase:
                 due_date DATE,
                 completed BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                completed_at TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                completed_at TIMESTAMP
             )
         ''')
         
@@ -61,8 +62,7 @@ class LifeOpsDatabase:
                 start_date DATE,
                 end_date DATE,
                 reminder_enabled BOOLEAN DEFAULT 1,
-                last_taken TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                last_taken TIMESTAMP
             )
         ''')
         
@@ -76,8 +76,7 @@ class LifeOpsDatabase:
                 due_day INTEGER,
                 category TEXT,
                 is_recurring BOOLEAN DEFAULT 1,
-                paid_this_month BOOLEAN DEFAULT 0,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                paid_this_month BOOLEAN DEFAULT 0
             )
         ''')
         
@@ -90,8 +89,7 @@ class LifeOpsDatabase:
                 duration_minutes INTEGER,
                 subject TEXT,
                 productivity_score INTEGER,
-                notes TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                notes TEXT
             )
         ''')
         
@@ -105,8 +103,7 @@ class LifeOpsDatabase:
                 finance_score INTEGER,
                 study_score INTEGER,
                 consistency_streak INTEGER,
-                reflections TEXT,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                reflections TEXT
             )
         ''')
         
@@ -119,27 +116,31 @@ class LifeOpsDatabase:
                 content TEXT,
                 tags TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
         
         conn.commit()
-        
-        # Create indexes for performance - FIXED: Moved after table creation
-        try:
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_action_items_user ON action_items(user_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_medicines_user ON medicines(user_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_bills_user ON bills(user_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_study_sessions_user ON study_sessions(user_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_smart_notes_user ON smart_notes(user_id)')
-            cursor.execute('CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)')
-            conn.commit()
-        except sqlite3.OperationalError as e:
-            print(f"Note: Some indexes already exist: {e}")
-            conn.rollback()  # Rollback if any index creation fails
-        
         conn.close()
+    
+    def _check_and_migrate(self, cursor):
+        """Check for old schema and migrate if needed"""
+        try:
+            # Check if old tables exist without user_id
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='action_items'")
+            if cursor.fetchone():
+                # Check if user_id column exists in action_items
+                cursor.execute("PRAGMA table_info(action_items)")
+                columns = [col[1] for col in cursor.fetchall()]
+                
+                if 'user_id' not in columns:
+                    print("⚠️ Detected old schema. Please delete the existing database file 'lifeops_data.db'")
+                    print("⚠️ Then restart the application to use the new multi-user schema.")
+                    return False
+            return True
+        except Exception as e:
+            print(f"Error checking schema: {e}")
+            return False
     
     # ========== USER AUTHENTICATION METHODS ==========
     
@@ -296,21 +297,12 @@ class LifeOpsDatabase:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''
-            WITH daily_completions AS (
+            SELECT COUNT(*) as streak FROM (
                 SELECT DATE(completed_at) as date
                 FROM action_items 
                 WHERE completed = 1 AND user_id = ?
                 GROUP BY DATE(completed_at)
-            ),
-            ordered_dates AS (
-                SELECT date,
-                       LAG(date) OVER (ORDER BY date) as prev_date
-                FROM daily_completions
             )
-            SELECT COUNT(*) as streak
-            FROM ordered_dates
-            WHERE date = DATE(prev_date, '+1 day')
-            OR prev_date IS NULL
         ''', (user_id,))
         result = cursor.fetchone()
         conn.close()
@@ -482,10 +474,16 @@ class LifeOpsDatabase:
         ''', (user_id,))
         result = cursor.fetchone()
         conn.close()
+        if result and result[0]:
+            return {
+                'total_minutes': result[0],
+                'avg_score': float(result[1] or 0),
+                'sessions': result[2]
+            }
         return {
-            'total_minutes': result[0] or 0,
-            'avg_score': float(result[1] or 0),
-            'sessions': result[2] or 0
+            'total_minutes': 0,
+            'avg_score': 0,
+            'sessions': 0
         }
     
     def get_study_sessions(self, user_id: int, limit: int = 20) -> List[Dict]:
@@ -557,100 +555,82 @@ class LifeOpsDatabase:
         conn.close()
         return affected > 0
     
-    # ========== WEEKLY PROGRESS METHODS (User-specific) ==========
-    
-    def save_weekly_progress(self, user_id: int, week_start: str, health_score: int,
-                           finance_score: int, study_score: int, consistency_streak: int,
-                           reflections: str = "") -> int:
-        """Save weekly progress for specific user"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            INSERT INTO weekly_progress 
-            (user_id, week_start, health_score, finance_score, study_score, consistency_streak, reflections)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (user_id, week_start, health_score, finance_score, study_score, consistency_streak, reflections))
-        progress_id = cursor.lastrowid
-        conn.commit()
-        conn.close()
-        return progress_id
-    
-    def get_weekly_progress(self, user_id: int, weeks: int = 4) -> List[Dict]:
-        """Get weekly progress for specific user"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT * FROM weekly_progress 
-            WHERE user_id = ? 
-            ORDER BY week_start DESC 
-            LIMIT ?
-        ''', (user_id, weeks))
-        rows = cursor.fetchall()
-        conn.close()
-        return [dict(row) for row in rows]
-    
     # ========== STATISTICS METHODS ==========
     
     def get_user_statistics(self, user_id: int) -> Dict:
         """Get comprehensive statistics for user"""
         stats = {}
         
-        # Action statistics
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Total actions
-        cursor.execute('SELECT COUNT(*) FROM action_items WHERE user_id = ?', (user_id,))
-        stats['total_actions'] = cursor.fetchone()[0] or 0
-        
-        # Completed actions
-        cursor.execute('SELECT COUNT(*) FROM action_items WHERE user_id = ? AND completed = 1', (user_id,))
-        stats['completed_actions'] = cursor.fetchone()[0] or 0
-        
-        # Medicines count
-        cursor.execute('SELECT COUNT(*) FROM medicines WHERE user_id = ?', (user_id,))
-        stats['medicines_count'] = cursor.fetchone()[0] or 0
-        
-        # Bills count
-        cursor.execute('SELECT COUNT(*) FROM bills WHERE user_id = ?', (user_id,))
-        stats['bills_count'] = cursor.fetchone()[0] or 0
-        
-        # Notes count
-        cursor.execute('SELECT COUNT(*) FROM smart_notes WHERE user_id = ?', (user_id,))
-        stats['notes_count'] = cursor.fetchone()[0] or 0
-        
-        conn.close()
-        
-        # Calculate completion rate
-        if stats['total_actions'] > 0:
-            stats['completion_rate'] = (stats['completed_actions'] / stats['total_actions']) * 100
-        else:
-            stats['completion_rate'] = 0
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Total actions
+            cursor.execute('SELECT COUNT(*) FROM action_items WHERE user_id = ?', (user_id,))
+            stats['total_actions'] = cursor.fetchone()[0] or 0
+            
+            # Completed actions
+            cursor.execute('SELECT COUNT(*) FROM action_items WHERE user_id = ? AND completed = 1', (user_id,))
+            stats['completed_actions'] = cursor.fetchone()[0] or 0
+            
+            # Medicines count
+            cursor.execute('SELECT COUNT(*) FROM medicines WHERE user_id = ?', (user_id,))
+            stats['medicines_count'] = cursor.fetchone()[0] or 0
+            
+            # Bills count
+            cursor.execute('SELECT COUNT(*) FROM bills WHERE user_id = ?', (user_id,))
+            stats['bills_count'] = cursor.fetchone()[0] or 0
+            
+            # Notes count
+            cursor.execute('SELECT COUNT(*) FROM smart_notes WHERE user_id = ?', (user_id,))
+            stats['notes_count'] = cursor.fetchone()[0] or 0
+            
+            conn.close()
+            
+            # Calculate completion rate
+            if stats['total_actions'] > 0:
+                stats['completion_rate'] = (stats['completed_actions'] / stats['total_actions']) * 100
+            else:
+                stats['completion_rate'] = 0
+                
+        except Exception as e:
+            print(f"Error getting user statistics: {e}")
+            # Return default stats
+            stats = {
+                'total_actions': 0,
+                'completed_actions': 0,
+                'medicines_count': 0,
+                'bills_count': 0,
+                'notes_count': 0,
+                'completion_rate': 0
+            }
         
         return stats
     
-    def cleanup_old_data(self, days: int = 30):
-        """Clean up old completed data"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+    def check_database_health(self) -> Dict:
+        """Check database health and provide status"""
+        health = {
+            'tables': [],
+            'user_count': 0,
+            'status': 'healthy'
+        }
         
-        # Delete completed actions older than specified days
-        cursor.execute('''
-            DELETE FROM action_items 
-            WHERE completed = 1 AND completed_at < DATE('now', ?)
-        ''', (f'-{days} days',))
-        
-        # Delete old study sessions
-        cursor.execute('''
-            DELETE FROM study_sessions 
-            WHERE date < DATE('now', ?)
-        ''', (f'-{days*3} days',))
-        
-        conn.commit()
-        conn.close()
-    
-    def backup_database(self, backup_path: str):
-        """Create a backup of the database"""
-        import shutil
-        shutil.copy2(self.db_path, backup_path)
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Get all tables
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = cursor.fetchall()
+            health['tables'] = [table[0] for table in tables]
+            
+            # Count users
+            cursor.execute("SELECT COUNT(*) FROM users")
+            health['user_count'] = cursor.fetchone()[0] or 0
+            
+            conn.close()
+            
+        except Exception as e:
+            health['status'] = f'error: {str(e)}'
+            
+        return health

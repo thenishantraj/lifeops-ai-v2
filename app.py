@@ -922,56 +922,22 @@ def main():
     initialize_session_state()
     
     if not st.session_state.authenticated:
+        # 1. Show Login Page
         login_page()
     else:
+        # 2. Render Sidebar Content
         render_sidebar()
         
-        st.markdown(
-            """
-            <style>
-                section[data-testid="stSidebar"] {
-                    display: block !important;
-                    visibility: visible !important;
-                    width: 300px !important;
-                }
-                
-                [data-testid="stSidebarNav"] {
-                    display: block !important;
-                    visibility: visible !important;
-                }
-                
-                [data-testid="collapsedControl"] {
-                    display: block !important;
-                    visibility: visible !important;
-                    color: black !important;
-                    background-color: rgba(255, 255, 255, 0.8) !important;
-                    border-radius: 50%;
-                    z-index: 999999 !important;
-                }
-                
-                header[data-testid="stHeader"] {
-                    background-color: transparent !important;
-                    z-index: 100;
-                }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
+        # 3. Route to Correct Page
+        page = st.session_state.current_page
         
-        if st.session_state.current_page == "Dashboard":
-            dashboard_page()
-        elif st.session_state.current_page == "Health Vault":
-            health_vault_page()
-        elif st.session_state.current_page == "Finance Hub":
-            finance_hub_page()
-        elif st.session_state.current_page == "Study Center":
-            study_center_page()
-        elif st.session_state.current_page == "Productivity":
-            productivity_page()
-        elif st.session_state.current_page == "Profile":
-            profile_page()
-        else:
-            dashboard_page()
+        if page == "Dashboard": dashboard_page()
+        elif page == "Health Vault": health_vault_page()
+        elif page == "Finance Hub": finance_hub_page()
+        elif page == "Study Center": study_center_page()
+        elif page == "Productivity": productivity_page()
+        elif page == "Profile": profile_page()
+        else: dashboard_page()
 
 if __name__ == "__main__":
     main()

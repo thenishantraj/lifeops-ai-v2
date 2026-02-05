@@ -917,51 +917,59 @@ def run_ai_analysis(user_inputs):
             st.session_state.processing = False
 
 def main():
-    """Main application function with FIXED navigation and Toggle Button"""
+    
     
     # Initialize session state
     initialize_session_state()
     
     # Check authentication
     if not st.session_state.authenticated:
-        # Login page (Sidebar humne CSS se chupaya hai)
+        
         login_page()
     else:
-        # Authenticated - Show Sidebar manually
+        # --- AUTHENTICATED STATE ---
+        
+        
         render_sidebar()
         
-        # --- FIX: Sidebar aur Toggle Button dono ko wapas layein ---
+
         st.markdown(
             """
             <style>
-                /* Sidebar container ko visible karein */
-                [data-testid="stSidebar"] { 
-                    display: block !important; 
+                /* Sidebar Container ko zabardasti dikhao */
+                section[data-testid="stSidebar"] {
+                    display: block !important;
+                    visibility: visible !important;
+                    width: 300px !important; /* Sidebar ki width fix kar di */
                 }
                 
-                /* Sidebar Collapse/Expand Button (Arrow) ko visible karein */
-                [data-testid="collapsedControl"] { 
-                    display: block !important; 
-                    color: black !important; /* Button ka color visible ho */
+                /* Sidebar Nav elements ko dikhao */
+                [data-testid="stSidebarNav"] {
+                    display: block !important;
+                    visibility: visible !important;
                 }
                 
-                /* Mobile Header (Hamburger Menu) ko bhi visible karein */
-                [data-testid="stHeader"] { 
-                    display: block !important; 
+                /* WO ARROW BUTTON (Toggle) jo gayab ho jata hai, use wapas lao */
+                [data-testid="collapsedControl"] {
+                    display: block !important;
+                    visibility: visible !important;
+                    color: black !important; /* Arrow ka color Black */
+                    background-color: rgba(255, 255, 255, 0.8) !important; /* Button ke peeche safed background */
+                    border-radius: 50%;
+                    z-index: 999999 !important; /* Sabse upar dikhe */
+                }
+                
+                /* Mobile Header (Hamburger Menu) ko bhi dikhao */
+                header[data-testid="stHeader"] {
                     background-color: transparent !important;
-                }
-                
-                /* Ye ensure karega ki navigation items dikhein */
-                [data-testid="stSidebarNav"] { 
-                    display: block !important; 
+                    z-index: 100;
                 }
             </style>
             """,
             unsafe_allow_html=True,
         )
-        # ---------------------------------------------------------
         
-        # Page routing logic
+        # 3. Page Routing Logic 
         if st.session_state.current_page == "Dashboard":
             dashboard_page()
         elif st.session_state.current_page == "Health Vault":

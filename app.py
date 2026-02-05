@@ -108,6 +108,7 @@ st.markdown("""
         margin: 0.5rem 0;
         border-radius: 8px;
         border: 1px solid #90caf9;
+        color: #000000 !important;
     }
     .bill-card {
         background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);

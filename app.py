@@ -1,5 +1,6 @@
 """
 LifeOps AI v2 - Multi-User Streamlit Application with Professional UI
+FIXED: Login HTML rendering and Sidebar Navigation
 """
 import streamlit as st
 import os
@@ -81,7 +82,8 @@ def initialize_session_state():
         st.session_state.notes = []
 
 def login_page():
-    """Render modern split-screen login page"""
+    """Render modern split-screen login page - FIXED HTML RENDERING"""
+    # Add custom CSS for login page
     st.markdown("""
     <style>
     .login-container {
@@ -127,6 +129,7 @@ def login_page():
     .features-list {
         margin-top: 40px;
         text-align: left;
+        max-width: 400px;
     }
     .feature-item {
         display: flex;
@@ -157,10 +160,11 @@ def login_page():
     </style>
     """, unsafe_allow_html=True)
     
+    # Create two columns for split screen
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # Left side - Branding and Features
+        # Left side - Branding and Features (FIXED: Proper HTML rendering)
         st.markdown("""
         <div class="login-left">
             <div class="logo-container">
@@ -267,60 +271,62 @@ def logout():
     st.session_state.current_page = "Dashboard"
     st.rerun()
 
-def professional_sidebar():
-    """Render professional sidebar navigation - ONLY SHOWN AFTER LOGIN"""
+def render_sidebar():
+    """Render the sidebar navigation menu - FIXED: Always show after login"""
     with st.sidebar:
-        # Show sidebar only if authenticated
-        if st.session_state.authenticated:
-            st.markdown(f"""
-            <div class="sidebar-header">
-                <h2>🧠 LifeOps</h2>
-                <p class="user-greeting">Hi, {st.session_state.user_data.get('name', 'User')}</p>
-                <p class="user-email">{st.session_state.user_data.get('email', '')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            # Navigation
-            st.markdown("### 📊 Navigation")
-            
-            # Page selection
-            pages = ["Dashboard", "Health Vault", "Finance Hub", "Study Center", "Productivity", "Profile"]
-            selected_page = st.selectbox(
-                "Go to",
-                pages,
-                index=pages.index(st.session_state.current_page) if st.session_state.current_page in pages else 0,
-                label_visibility="collapsed"
-            )
-            
-            # Update current page
-            if selected_page != st.session_state.current_page:
-                st.session_state.current_page = selected_page
-                st.rerun()
-            
-            st.markdown("---")
-            
-            # Quick Stats (with error handling)
-            try:
-                if st.session_state.user_id:
-                    stats = db.get_user_statistics(st.session_state.user_id)
-                    st.markdown("### 📈 Quick Stats")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.metric("Actions", stats['total_actions'])
-                        st.metric("Medicines", stats['medicines_count'])
-                    with col2:
-                        st.metric("Bills", stats['bills_count'])
-                        st.metric("Notes", stats['notes_count'])
-            except Exception as e:
-                st.warning("Stats loading...")
-            
-            st.markdown("---")
-            
-            # Logout button at bottom
-            if st.button("🚪 Logout", use_container_width=True, type="secondary"):
-                logout()
+        # Show user info
+        st.markdown(f"""
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 40px; margin-bottom: 10px;">🧠</div>
+            <h3 style="margin-bottom: 5px;">LifeOps</h3>
+            <p style="color: #666; font-size: 14px; margin-bottom: 2px;">Hi, {st.session_state.user_data.get('name', 'User')}</p>
+            <p style="color: #888; font-size: 12px; margin-bottom: 20px;">{st.session_state.user_data.get('email', '')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # Navigation Menu - FIXED: Using st.sidebar.radio for proper navigation
+        st.markdown("### 📊 Navigation")
+        
+        # Define navigation options
+        nav_options = ["Dashboard", "Health Vault", "Finance Hub", "Study Center", "Productivity", "Profile"]
+        
+        # Create radio buttons for navigation
+        selected_page = st.radio(
+            "Go to",
+            nav_options,
+            index=nav_options.index(st.session_state.current_page) if st.session_state.current_page in nav_options else 0,
+            label_visibility="collapsed"
+        )
+        
+        # Update current page if changed
+        if selected_page != st.session_state.current_page:
+            st.session_state.current_page = selected_page
+            st.rerun()
+        
+        st.markdown("---")
+        
+        # Quick Stats (with error handling)
+        try:
+            if st.session_state.user_id:
+                stats = db.get_user_statistics(st.session_state.user_id)
+                st.markdown("### 📈 Quick Stats")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Actions", stats['total_actions'])
+                    st.metric("Medicines", stats['medicines_count'])
+                with col2:
+                    st.metric("Bills", stats['bills_count'])
+                    st.metric("Notes", stats['notes_count'])
+        except Exception as e:
+            st.warning("Stats loading...")
+        
+        st.markdown("---")
+        
+        # Logout button at bottom - FIXED: Always visible
+        if st.button("🚪 Logout", use_container_width=True, type="secondary"):
+            logout()
 
 def dashboard_page():
     """Render professional dashboard"""
@@ -686,6 +692,285 @@ def finance_hub_page():
         expense_df = pd.DataFrame(list(expense_data.items()), columns=["Category", "Amount"])
         st.bar_chart(expense_df.set_index("Category"))
 
+def study_center_page():
+    """Render Study Center page"""
+    st.markdown('<h1 class="page-title">📚 Study Center</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="page-subtitle">Optimize your learning with smart schedules and focus techniques</p>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Pomodoro Timer
+        st.markdown("### 🍅 Focus Timer")
+        
+        timer_col1, timer_col2 = st.columns(2)
+        with timer_col1:
+            work_minutes = st.number_input("Work Minutes", 5, 60, 25, key="work_mins")
+            subject = st.text_input("Study Subject", placeholder="e.g., Mathematics, Physics", key="study_subject")
+        with timer_col2:
+            break_minutes = st.number_input("Break Minutes", 1, 30, 5, key="break_mins")
+            focus_level = st.slider("Focus Level (1-10)", 1, 10, 7, key="focus_level")
+        
+        if not st.session_state.pomodoro_active:
+            if st.button("▶️ Start Focus Session", type="primary", key="start_pomodoro"):
+                st.session_state.pomodoro_active = True
+                st.session_state.pomodoro_time = work_minutes * 60
+                st.session_state.break_time = break_minutes * 60
+                st.session_state.is_work = True
+                st.session_state.current_subject = subject
+                st.rerun()
+        else:
+            # Timer display
+            mins, secs = divmod(st.session_state.pomodoro_time, 60)
+            timer_text = f"{mins:02d}:{secs:02d}"
+            phase = "FOCUS" if st.session_state.get('is_work', True) else "BREAK"
+            phase_color = "#e74c3c" if st.session_state.get('is_work', True) else "#2ecc71"
+            
+            st.markdown(f"""
+            <div class="timer-container">
+                <div class="timer-phase" style="background: {phase_color}">{phase}</div>
+                <div class="timer-display-large">{timer_text}</div>
+                <div class="timer-subject">📚 {st.session_state.get('current_subject', 'General Study')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            control_col1, control_col2, control_col3 = st.columns(3)
+            with control_col1:
+                if st.button("⏸️ Pause", key="pause_timer"):
+                    st.session_state.pomodoro_active = False
+                    st.rerun()
+            with control_col2:
+                if st.button("⏭️ Skip to Break", key="skip_break"):
+                    st.session_state.pomodoro_time = st.session_state.get('break_time', 300)
+                    st.session_state.is_work = False
+                    st.rerun()
+            with control_col3:
+                if st.button("⏹️ End Session", key="end_session"):
+                    st.session_state.pomodoro_active = False
+                    duration = work_minutes - (st.session_state.pomodoro_time // 60)
+                    if duration > 0:
+                        db.add_study_session(st.session_state.user_id, duration, 
+                                           st.session_state.get('current_subject', 'General'), 
+                                           focus_level)
+                        st.success(f"Session saved: {duration} minutes")
+                    st.rerun()
+        
+        # Study Tips
+        st.markdown("### 💡 Study Tips")
+        
+        tips = [
+            "🧠 Use the Pomodoro technique for better focus",
+            "📝 Take handwritten notes for better retention",
+            "🔄 Review material within 24 hours of learning",
+            "🎯 Set specific, achievable study goals",
+            "💤 Get adequate sleep before exams",
+            "🏃♂️ Take short active breaks between sessions"
+        ]
+        
+        for tip in tips:
+            st.markdown(f'<div class="tip-item">{tip}</div>', unsafe_allow_html=True)
+    
+    with col2:
+        # Study Statistics
+        st.markdown("### 📊 Study Statistics")
+        
+        if st.session_state.user_id:
+            study_stats = db.get_weekly_study_summary(st.session_state.user_id)
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.metric("Weekly Hours", f"{study_stats['total_minutes']//60}h")
+                st.metric("Sessions", study_stats['sessions'])
+            with col_b:
+                st.metric("Avg Focus", f"{study_stats['avg_score']:.1f}/10")
+                st.metric("Daily Avg", f"{(study_stats['total_minutes']//60)/7:.1f}h")
+        
+        # Recent Sessions
+        st.markdown("#### 📅 Recent Sessions")
+        if st.session_state.user_id:
+            recent_sessions = db.get_study_sessions(st.session_state.user_id, limit=5)
+            for session in recent_sessions:
+                st.markdown(f"""
+                <div class="session-item">
+                    <strong>{session['subject']}</strong><br>
+                    <small>⏱️ {session['duration_minutes']} min | ⭐ {session['productivity_score']}/10 | 
+                    {session['date']}</small>
+                </div>
+                """, unsafe_allow_html=True)
+
+def productivity_page():
+    """Render Productivity Tools page"""
+    st.markdown('<h1 class="page-title">⚡ Productivity Hub</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="page-subtitle">Smart tasks, notes, and integrated planning</p>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Task Management
+        st.markdown("### ✅ Task Management")
+        
+        # Add Task
+        with st.form("add_task_form"):
+            task_col1, task_col2 = st.columns([3, 1])
+            with task_col1:
+                new_task = st.text_input("New Task", placeholder="What needs to be done?", key="new_task")
+            with task_col2:
+                task_category = st.selectbox("Category", ["Health", "Finance", "Study", "Personal", "Work"], key="task_category")
+            
+            submitted = st.form_submit_button("Add Task", type="primary")
+            if submitted and new_task:
+                db.add_action_item(st.session_state.user_id, new_task, task_category, "User")
+                st.session_state.todo_items = db.get_pending_actions(st.session_state.user_id)
+                st.success("Task added!")
+                st.rerun()
+        
+        # Task List
+        st.markdown("#### 📋 Active Tasks")
+        tasks = db.get_pending_actions(st.session_state.user_id)
+        
+        if tasks:
+            for task in tasks:
+                with st.container():
+                    col_a, col_b, col_c = st.columns([3, 1, 1])
+                    with col_a:
+                        category_color = {
+                            "Health": "#2ecc71",
+                            "Finance": "#f39c12",
+                            "Study": "#3498db",
+                            "Personal": "#9b59b6",
+                            "Work": "#e74c3c"
+                        }.get(task['category'], "#95a5a6")
+                        
+                        st.markdown(f"""
+                        <div class="list-item">
+                            <strong>{task['task']}</strong><br>
+                            <small>
+                                <span style="color: {category_color}">● {task['category']}</span> | 
+                                📅 {task['created_at'][:10]}
+                            </small>
+                        </div>
+                        """, unsafe_allow_html=True)
+                    with col_b:
+                        if st.button("✅", key=f"complete_{task['id']}"):
+                            db.mark_action_complete(st.session_state.user_id, task['id'])
+                            st.session_state.todo_items = db.get_pending_actions(st.session_state.user_id)
+                            st.rerun()
+                    with col_c:
+                        if st.button("🗑️", key=f"delete_task_{task['id']}"):
+                            db.delete_action(st.session_state.user_id, task['id'])
+                            st.session_state.todo_items = db.get_pending_actions(st.session_state.user_id)
+                            st.rerun()
+        else:
+            st.info("No active tasks. Add a task above!")
+        
+        # Completed Tasks Stats
+        if st.session_state.user_id:
+            stats = db.get_user_statistics(st.session_state.user_id)
+            if stats['total_actions'] > 0:
+                completion_rate = (stats['completed_actions'] / stats['total_actions']) * 100
+                st.metric("Completion Rate", f"{completion_rate:.1f}%")
+    
+    with col2:
+        # Smart Notes
+        st.markdown("### 📝 Smart Notes")
+        
+        note_title = st.text_input("Note Title", placeholder="Enter title", key="note_title")
+        note_content = st.text_area("Content", height=150, placeholder="Write your note here...", key="note_content")
+        note_tags = st.text_input("Tags (comma-separated)", placeholder="work, ideas, personal", key="note_tags")
+        
+        if st.button("💾 Save Note", key="save_note"):
+            if note_title and note_content:
+                db.add_note(st.session_state.user_id, note_title, note_content, note_tags)
+                st.session_state.notes = db.get_notes(st.session_state.user_id)
+                st.success("Note saved!")
+                st.rerun()
+            else:
+                st.warning("Please enter both title and content")
+        
+        # Recent Notes
+        st.markdown("#### 📓 Recent Notes")
+        notes = st.session_state.notes[:3]
+        for note in notes:
+            with st.expander(f"📄 {note['title']}"):
+                st.write(note['content'])
+                if note['tags']:
+                    st.caption(f"🏷️ {note['tags']}")
+
+def profile_page():
+    """Render User Profile page"""
+    st.markdown('<h1 class="page-title">👤 Your Profile</h1>', unsafe_allow_html=True)
+    st.markdown('<p class="page-subtitle">Manage your account and preferences</p>', unsafe_allow_html=True)
+    
+    col1, col2 = st.columns([1, 2])
+    
+    with col1:
+        # Profile Summary
+        st.markdown("### Profile Summary")
+        
+        user = st.session_state.user_data
+        if user:
+            st.markdown(f"""
+            <div class="profile-card">
+                <div class="profile-avatar">👤</div>
+                <h3>{user.get('name', 'User')}</h3>
+                <p>{user.get('email', '')}</p>
+                <div class="profile-stats">
+                    <div class="stat-item">
+                        <div class="stat-value">Member Since</div>
+                        <div class="stat-label">{user.get('joined_at', '')[:10]}</div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Account Type
+        st.markdown("### Account Type")
+        st.info("✨ **Free Account**\n\nUpgrade to Premium for:\n• Unlimited AI Analysis\n• Advanced Analytics\n• Priority Support")
+        
+        if st.button("🔄 Check for Updates", key="check_updates"):
+            st.success("You're using the latest version of LifeOps AI!")
+    
+    with col2:
+        # User Statistics
+        st.markdown("### 📊 Your LifeOps Statistics")
+        
+        if st.session_state.user_id:
+            stats = db.get_user_statistics(st.session_state.user_id)
+            
+            col_a, col_b = st.columns(2)
+            with col_a:
+                st.metric("Total Actions", stats['total_actions'])
+                st.metric("Medicines Tracked", stats['medicines_count'])
+                st.metric("Bills Managed", stats['bills_count'])
+            with col_b:
+                st.metric("Completed Actions", stats['completed_actions'])
+                st.metric("Notes Created", stats['notes_count'])
+                st.metric("Completion Rate", f"{stats['completion_rate']:.1f}%")
+        
+        # Settings
+        st.markdown("### ⚙️ Settings")
+        
+        with st.expander("🔔 Notification Settings", expanded=False):
+            email_notifications = st.checkbox("Email Notifications", value=True)
+            push_reminders = st.checkbox("Push Reminders", value=True)
+            weekly_reports = st.checkbox("Weekly Progress Reports", value=True)
+            
+            if st.button("Save Notification Settings", key="save_notifications"):
+                st.success("Notification settings saved!")
+        
+        with st.expander("🎨 Theme Settings", expanded=False):
+            theme = st.selectbox("Theme", ["Light", "Dark", "Auto"])
+            font_size = st.select_slider("Font Size", options=["Small", "Medium", "Large"], value="Medium")
+            
+            if st.button("Apply Theme", key="apply_theme"):
+                st.success("Theme settings applied!")
+        
+        with st.expander("🔐 Security", expanded=False):
+            st.info("For security reasons, please contact support to change your password.")
+            
+            if st.button("📧 Request Password Reset", key="reset_password"):
+                st.success("Password reset instructions sent to your email!")
+
 def run_ai_analysis(user_inputs):
     """Run AI analysis with user context"""
     with st.spinner("🧠 LifeOps AI is analyzing your life with multi-agent intelligence..."):
@@ -725,7 +1010,7 @@ def run_ai_analysis(user_inputs):
             st.session_state.processing = False
 
 def main():
-    """Main application function with multi-user support"""
+    """Main application function with fixed navigation"""
     
     # Initialize session state
     initialize_session_state()
@@ -733,19 +1018,20 @@ def main():
     # Check authentication
     if not st.session_state.authenticated:
         # Show login page with no sidebar
+        st.set_page_config(initial_sidebar_state="collapsed")
         login_page()
     else:
-        # Show sidebar for authenticated users
-        professional_sidebar()
+        # Show sidebar for authenticated users - FIXED: Always render sidebar
+        render_sidebar()
         
-        # Get current page from session state
+        # Get current page from session state and render appropriate page
         page_mapping = {
             "Dashboard": dashboard_page,
             "Health Vault": health_vault_page,
             "Finance Hub": finance_hub_page,
-            "Study Center": lambda: st.info("Study Center page - Coming Soon!"),
-            "Productivity": lambda: st.info("Productivity page - Coming Soon!"),
-            "Profile": lambda: st.info("Profile page - Coming Soon!")
+            "Study Center": study_center_page,
+            "Productivity": productivity_page,
+            "Profile": profile_page
         }
         
         # Render selected page

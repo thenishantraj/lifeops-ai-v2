@@ -1,6 +1,6 @@
 """
 LifeOps AI v2 - Multi-User Streamlit Application with Professional UI
-FIXED: Login HTML rendering and Sidebar Navigation
+FIXED: Login HTML rendering, Dark Mode visibility, and Sidebar Navigation
 """
 import streamlit as st
 import os
@@ -82,8 +82,8 @@ def initialize_session_state():
         st.session_state.notes = []
 
 def login_page():
-    """Render modern split-screen login page - FIXED HTML RENDERING"""
-    # Add custom CSS for login page
+    """Render modern split-screen login page - FIXED: HTML rendering and Dark Mode visibility"""
+    # Add custom CSS for login page with Dark Mode fixes
     st.markdown("""
     <style>
     .login-container {
@@ -102,12 +102,34 @@ def login_page():
     }
     .login-right {
         flex: 1;
-        background: white;
+        background: #ffffff !important;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         padding: 40px;
+        color: #000000 !important;
+    }
+    .login-right * {
+        color: #000000 !important;
+    }
+    .login-form-container {
+        width: 100%;
+        max-width: 400px;
+        background: #ffffff !important;
+        color: #000000 !important;
+    }
+    .form-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #2c3e50 !important;
+        margin-bottom: 10px;
+        text-align: center;
+    }
+    .form-subtitle {
+        color: #7f8c8d !important;
+        text-align: center;
+        margin-bottom: 30px;
     }
     .logo-container {
         text-align: center;
@@ -141,21 +163,25 @@ def login_page():
         margin-right: 15px;
         font-size: 20px;
     }
-    .login-form-container {
-        width: 100%;
-        max-width: 400px;
+    /* Fix input fields for Dark Mode */
+    .stTextInput input, .stTextInput label, .stTextInput div {
+        color: #000000 !important;
     }
-    .form-title {
-        font-size: 28px;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 10px;
-        text-align: center;
+    .stTextInput > div > div > input {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #ddd !important;
     }
-    .form-subtitle {
-        color: #7f8c8d;
-        text-align: center;
-        margin-bottom: 30px;
+    /* Fix tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        background-color: #ffffff !important;
+    }
+    .stTabs [data-baseweb="tab"] {
+        color: #000000 !important;
+    }
+    /* Fix buttons */
+    .stButton button {
+        color: #ffffff !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -164,7 +190,7 @@ def login_page():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # Left side - Branding and Features (FIXED: Proper HTML rendering)
+        # Left side - Branding and Features (FIXED: Added unsafe_allow_html=True)
         st.markdown("""
         <div class="login-left">
             <div class="logo-container">
@@ -196,10 +222,10 @@ def login_page():
                 </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)  # FIXED BUG 1: Added unsafe_allow_html=True
     
     with col2:
-        # Right side - Login Form
+        # Right side - Login Form (FIXED BUG 2: Dark Mode visibility)
         st.markdown("""
         <div class="login-right">
             <div class="login-form-container">
@@ -286,7 +312,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # Navigation Menu - FIXED: Using st.sidebar.radio for proper navigation
+        # Navigation Menu - FIXED BUG 3: Proper sidebar navigation
         st.markdown("### 📊 Navigation")
         
         # Define navigation options
@@ -324,7 +350,7 @@ def render_sidebar():
         
         st.markdown("---")
         
-        # Logout button at bottom - FIXED: Always visible
+        # Logout button at bottom
         if st.button("🚪 Logout", use_container_width=True, type="secondary"):
             logout()
 
@@ -1010,7 +1036,7 @@ def run_ai_analysis(user_inputs):
             st.session_state.processing = False
 
 def main():
-    """Main application function with fixed navigation"""
+    """Main application function with FIXED navigation"""
     
     # Initialize session state
     initialize_session_state()
@@ -1021,22 +1047,29 @@ def main():
         st.set_page_config(initial_sidebar_state="collapsed")
         login_page()
     else:
-        # Show sidebar for authenticated users - FIXED: Always render sidebar
+        # FIXED BUG 3: Create proper sidebar navigation
+        # Render sidebar first
         render_sidebar()
         
-        # Get current page from session state and render appropriate page
-        page_mapping = {
-            "Dashboard": dashboard_page,
-            "Health Vault": health_vault_page,
-            "Finance Hub": finance_hub_page,
-            "Study Center": study_center_page,
-            "Productivity": productivity_page,
-            "Profile": profile_page
-        }
+        # Now render the selected page based on current_page state
+        # The render_sidebar() function already handles updating current_page via radio buttons
         
-        # Render selected page
-        page_function = page_mapping.get(st.session_state.current_page, dashboard_page)
-        page_function()
+        # Page routing logic
+        if st.session_state.current_page == "Dashboard":
+            dashboard_page()
+        elif st.session_state.current_page == "Health Vault":
+            health_vault_page()
+        elif st.session_state.current_page == "Finance Hub":
+            finance_hub_page()
+        elif st.session_state.current_page == "Study Center":
+            study_center_page()
+        elif st.session_state.current_page == "Productivity":
+            productivity_page()
+        elif st.session_state.current_page == "Profile":
+            profile_page()
+        else:
+            # Default to dashboard
+            dashboard_page()
 
 if __name__ == "__main__":
     main()

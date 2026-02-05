@@ -427,35 +427,6 @@ def dashboard_page():
         """, unsafe_allow_html=True)
 
     
-    # 3. AI REPORT SECTION
-    if st.session_state.analysis_results:
-        st.markdown("---")
-        st.markdown("## 🧠 AI Analysis Report")
-        
-        results = st.session_state.analysis_results
-        
-        # Tabs for Report
-        tab1, tab2, tab3, tab4 = st.tabs(["🏥 Health Plan", "💰 Finance Plan", "📚 Study Plan", "🔄 Integrated Plan"])
-        
-        with tab1:
-            st.markdown('<div class="report-card">', unsafe_allow_html=True)
-            st.markdown(results.get("health", "No data"))
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        with tab2:
-            st.markdown('<div class="report-card">', unsafe_allow_html=True)
-            st.markdown(results.get("finance", "No data"))
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        with tab3:
-            st.markdown('<div class="report-card">', unsafe_allow_html=True)
-            st.markdown(results.get("study", "No data"))
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-        with tab4:
-            st.markdown('<div class="report-card">', unsafe_allow_html=True)
-            st.markdown(results.get("coordination", "No data"))
-            st.markdown('</div>', unsafe_allow_html=True)
             
     # Charts Row
     st.markdown("### 📊 Visual Analytics")
@@ -485,6 +456,35 @@ def dashboard_page():
             ),
             use_container_width=True
         )
+    # 3. AI REPORT SECTION
+    if st.session_state.analysis_results:
+        st.markdown("---")
+        st.markdown("## 🧠 AI Analysis Report")
+        
+        results = st.session_state.analysis_results
+        
+        # Tabs for Report
+        tab1, tab2, tab3, tab4 = st.tabs(["🏥 Health Plan", "💰 Finance Plan", "📚 Study Plan", "🔄 Integrated Plan"])
+        
+        with tab1:
+            st.markdown('<div class="report-card">', unsafe_allow_html=True)
+            st.markdown(results.get("health", "No data"))
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with tab2:
+            st.markdown('<div class="report-card">', unsafe_allow_html=True)
+            st.markdown(results.get("finance", "No data"))
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with tab3:
+            st.markdown('<div class="report-card">', unsafe_allow_html=True)
+            st.markdown(results.get("study", "No data"))
+            st.markdown('</div>', unsafe_allow_html=True)
+            
+        with tab4:
+            st.markdown('<div class="report-card">', unsafe_allow_html=True)
+            st.markdown(results.get("coordination", "No data"))
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def health_vault_page():
     """Render Health Vault page"""

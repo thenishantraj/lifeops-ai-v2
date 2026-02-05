@@ -81,7 +81,7 @@ def initialize_session_state():
         st.session_state.notes = []
 
 def login_page():
-    """Render modern split-screen login page - FIXED"""
+    """Render modern split-screen login page - FIXED INDENTATION"""
     # Hide Sidebar specifically on Login Page using CSS
     st.markdown("""
     <style>
@@ -100,7 +100,6 @@ def login_page():
             color: #000000 !important;
             border-radius: 10px;
         }
-        /* Fix Text Visibility */
         h1, h2, h3, p, span, div { font-family: 'Helvetica Neue', sans-serif; }
         .feature-item { margin-bottom: 15px; font-size: 16px; color: white; display: flex; align-items: center; }
         .feature-icon { margin-right: 10px; font-size: 20px; }
@@ -110,40 +109,31 @@ def login_page():
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        # Left side - Branding (FIXED: Added unsafe_allow_html=True)
+        # Left side - Branding (NO INDENTATION IN HTML STRING to prevent code block rendering)
         st.markdown("""
-        <div class="login-left">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <div style="font-size: 64px; margin-bottom: 20px;">🧠</div>
-                <h1 style="color: white; font-weight: bold;">LifeOps AI</h1>
-                <p style="color: white; opacity: 0.9;">Your Intelligent Life Management Platform</p>
-            </div>
-            
-            <div style="margin-top: 40px;">
-                <div class="feature-item">
-                    <span class="feature-icon">⚡</span> AI-Powered Life Optimization
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📊</span> Health, Finance & Study Integration
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔒</span> Secure & Private Data Storage
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🎯</span> Personalized Recommendations
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True) # <-- YE LINE SABSE ZAROORI HAI
+<div class="login-left">
+<div style="text-align: center; margin-bottom: 40px;">
+<div style="font-size: 64px; margin-bottom: 20px;">🧠</div>
+<h1 style="color: white; font-weight: bold;">LifeOps AI</h1>
+<p style="color: white; opacity: 0.9;">Your Intelligent Life Management Platform</p>
+</div>
+<div style="margin-top: 40px;">
+<div class="feature-item"><span class="feature-icon">⚡</span> AI-Powered Life Optimization</div>
+<div class="feature-item"><span class="feature-icon">📊</span> Health, Finance & Study Integration</div>
+<div class="feature-item"><span class="feature-icon">🔒</span> Secure & Private Data Storage</div>
+<div class="feature-item"><span class="feature-icon">🎯</span> Personalized Recommendations</div>
+</div>
+</div>
+""", unsafe_allow_html=True) 
     
     with col2:
         # Right side - Login Form
         st.markdown("""
-        <div class="login-right">
-            <h2 style="color: black; text-align: center;">Welcome Back</h2>
-            <p style="color: grey; text-align: center; margin-bottom: 30px;">Sign in to continue to LifeOps</p>
-        </div>
-        """, unsafe_allow_html=True)
+<div class="login-right">
+<h2 style="color: black; text-align: center;">Welcome Back</h2>
+<p style="color: grey; text-align: center; margin-bottom: 30px;">Sign in to continue to LifeOps</p>
+</div>
+""", unsafe_allow_html=True)
         
         tab1, tab2 = st.tabs(["🔐 Login", "📝 Sign Up"])
         
@@ -934,13 +924,13 @@ def main():
     
     # Check authentication
     if not st.session_state.authenticated:
-        # Login page (Sidebar humne CSS se chupaya hai upar wale function mein)
+        # Login page (Sidebar humne CSS se chupaya hai)
         login_page()
     else:
         # Authenticated - Show Sidebar manually
         render_sidebar()
         
-        # Sidebar fix for mobile/collapsed state
+        # Sidebar fix: Force display using CSS
         st.markdown(
             """
             <style>

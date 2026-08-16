@@ -274,7 +274,6 @@ The app will open in your default browser at `http://localhost:8501`
 ### Environment Variables
 | Variable | Description | Default |
 |----------|-------------|---------|
-| GOOGLE_API_KEY | Google Gemini API Key | Required |
 | DATABASE_PATH | SQLite database path | lifeops_v2.db |
 | APP_TITLE | Application title | "LifeOps AI v2.0" |
 | DEBUG_MODE | Enable debug features | False |
@@ -388,7 +387,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - CrewAI Team for the amazing multi-agent framework
-- Google Gemini for powerful LLM capabilities
 - Streamlit for the fantastic web app framework
 - Open Source Community for inspiration and tools
 

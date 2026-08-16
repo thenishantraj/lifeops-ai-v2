@@ -4,11 +4,11 @@
 LifeOps AI is a multi-agent AI personal operations manager with cyberpunk-themed interface.
 
 ## Tech Stack
-- **Frontend**: Streamlit 1.29.0
-- **AI Orchestration**: CrewAI 0.28.8
-- **LLM**: Google Gemini 1.5 Flash
-- **Database**: SQLite 3
-- **Visualization**: Plotly 5.18.0
+- **Frontend**: Streamlit
+- **AI Orchestration**: CrewAI 
+- **LLM**: Google
+- **Database**: SQLite 
+- **Visualization**: Plotly
 - **Styling**: Custom CSS with Glassmorphism effects
 
 ## Database Schema

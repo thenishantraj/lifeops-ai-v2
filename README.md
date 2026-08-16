@@ -148,13 +148,12 @@ graph TD
 
 ### Prerequisites
 - Python 3.8 or higher
-- Google Gemini API key (free tier available)
 - Git (for version control)
 
 ### Step 1: Clone the Repository
 ```bash
-git clone https://github.com/yourusername/lifeops-ai.git
-cd lifeops-ai
+git clone https://github.com/thenishantraj/lifeops-ai-v2.git
+cd lifeops-ai-v2
 ```
 
 ### Step 2: Create Virtual Environment (Recommended)
@@ -177,9 +176,6 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 
 ```env
-# Required: Google Gemini API Key
-GOOGLE_API_KEY=your_gemini_api_key_here
-
 # Optional: Custom Database Path
 DATABASE_PATH=lifeops_v2.db
 
@@ -188,12 +184,8 @@ APP_TITLE="LifeOps AI v2.0"
 DEBUG_MODE=False
 ```
 
-### Step 5: Get Your Gemini API Key
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create a new API key (free tier available)
-3. Copy the key to your `.env` file
 
-### Step 6: Run the Application
+### Step 5: Run the Application
 ```bash
 streamlit run app.py
 ```

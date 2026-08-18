@@ -22,10 +22,10 @@
 ---
 
 ##  Table of Contents
-- [🌟 Introduction](#-introduction)
-- [✨ Key Features](#-key-features)
-- [🏗️ System Architecture](#️-system-architecture)
-- [🛠️ Installation Guide](#️-installation-guide)
+- [ Introduction](#-introduction)
+- [ Key Features](#-key-features)
+- [ System Architecture](#️-system-architecture)
+- [ Installation Guide](#️-installation-guide)
 - [🚀 Quick Start](#-quick-start)
 - [🎯 How It Works](#-how-it-works)
 - [🤖 AI Agents Breakdown](#-ai-agents-breakdown)

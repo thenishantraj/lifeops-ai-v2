@@ -235,33 +235,33 @@ The app will open in your default browser at `http://localhost:8501`
 
 ---
 
-## 📊 Dashboard Features
+##  Dashboard Features
 
-### 🎯 Main Command Center
+###  Main Command Center
 - Real-time agent status indicators
 - Priority task overview
 - Progress scorecards
 - Quick action buttons
 
-### 📈 Analytics Hub
+###  Analytics Hub
 - Interactive progress charts
 - Consistency heatmaps
 - Domain-specific metrics
 - Trend analysis
 
-### ✅ Task Management
+###  Task Management
 - Priority-based task lists
 - Drag-and-drop organization
 - AI-suggested tasks
 - Completion tracking
 
-### 💊 Health & Wellness
+###  Health & Wellness
 - Medicine tracker with reminders
 - Sleep cycle monitoring
 - Exercise log
 - Nutrition diary
 
-### 💸 Finance Panel
+###  Finance Panel
 - Bill payment calendar
 - Expense categorization
 - Savings progress
@@ -269,7 +269,7 @@ The app will open in your default browser at `http://localhost:8501`
 
 ---
 
-## 🔧 Configuration
+##  Configuration
 
 ### Environment Variables
 | Variable | Description | Default |
